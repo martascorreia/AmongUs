@@ -60,11 +60,8 @@ public class Game extends Agent {
 
 		createMap();
 		printMap();
-		// create agents
-		//createAgents();
+		createAgents();
 		
-		/*
-
 		// FSM BEHAVIOUR
 		FSMBehaviour game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
@@ -90,11 +87,10 @@ public class Game extends Agent {
 		game.registerTransition(MEETING, PLAYING, 0);
 		game.registerTransition(MEETING, OVER, 1);
 
-		addBehaviour(game);*/
+		addBehaviour(game);
 	}	
 	
 	private void createMap() {
-	
 		this.map = new TypeOfPosition[LINES * COLUMNS];
 		
 		int j = 0;
@@ -106,29 +102,14 @@ public class Game extends Agent {
 				i++;
 				j = 0;
 			}
-			
+						
 			index = j + i * COLUMNS;
 					
-			if(index == 96 || index == 196 || index == 204 || index == 251 || index == 256 || index == 258 || index == 272 || index == 313 || index == 328) {
+			if(index == 78 || index == 96 || index == 196 || index == 204 || index == 251 || index == 256 || index == 272 || index == 313 || index == 328) {
 				map[index] = TypeOfPosition.VENT;
 				
-			} else if(index == 35 || index == 36 || (index >= 45 && index <= 49) || (index >= 52 && index <= 55) || (index >= 67 && index <= 84) 
-					|| index == 86 || index == 97 || index == 98 || index == 104 || index == 107 || index == 108 || index == 111 || index == 112
-					|| (index >= 114 && index <= 117) || index == 129 || (index >= 134 && index <= 136) || index == 138 || index == 139
-					|| index == 142 || index == 143 || index == 147 || index == 156 || index == 158 || index == 160 || index == 162 
-					|| index == 163 || (index >= 165 && index <= 167) || (index >= 169 && index <= 174) || index == 176 
-					|| (index >= 178 && index <= 180) || (index >= 182 && index <= 184) || (index >= 187 &&  index <= 189) || index == 191 
-					|| index == 193 || index == 194 || index == 197
-					|| (index >= 200 && index <= 203) || index == 205 || (index >= 207 && index <= 211) || index == 213 || index == 214
-					|| (index >= 218 && index <= 225) || index == 232 || index == 263
-					|| index == 233 || (index >= 242 && index <= 246) || index == 249 || index == 250 || index == 253 || index == 255 
-					|| index == 260 || (index >= 264 && index <= 270) || index == 273 || (index >= 275 && index <= 277) || index == 284 
-					|| index == 291 || (index >= 293 && index <= 295) || (index >= 297 && index <= 299) || index == 301 || index == 303 
-					|| index == 304 || (index >= 314 && index <= 316) || index == 321 || index == 322 || index == 324 || index == 326 
-					|| (index >= 329 && index <= 332) || index == 334 || index == 335 || (index >= 346 && index <= 349)
-					|| index == 351 || index == 355 || index == 357 || index == 365 || index == 366 || (index >= 376 && index <= 378)
-					|| (index >= 380 && index <= 386) || (index >= 388 && index <= 396)) {
-				map[index] = TypeOfPosition.NORMAL;
+			} else if(i == 0 || i == 13 || j == 0 || j == 30) {
+				map[index] = TypeOfPosition.WALL;
 				
 			} else if(index == 157) {
 				map[index] = TypeOfPosition.REACTOR;
@@ -173,10 +154,8 @@ public class Game extends Agent {
 				map[index] = TypeOfPosition.WIRES;
 				
 			} else {
-				map[index] = TypeOfPosition.WALL;
-
-			}
-			
+				map[index] = TypeOfPosition.NORMAL;
+			}	
 		}
 	}
 
@@ -200,20 +179,19 @@ public class Game extends Agent {
 			} else if(map[index] == TypeOfPosition.SHIELDS || map[index] == TypeOfPosition.FILLGAS 
 					|| map[index] == TypeOfPosition.CARDSWIPE || map[index] == TypeOfPosition.ASTEROIDS
 					|| map[index] == TypeOfPosition.DOWNLOAD || map[index] == TypeOfPosition.UPLOAD
-					|| map[index] == TypeOfPosition.TRASH || map[index] == TypeOfPosition.WIRES || map[index] == TypeOfPosition.MEDBAY){
+					|| map[index] == TypeOfPosition.TRASH || map[index] == TypeOfPosition.WIRES 
+					|| map[index] == TypeOfPosition.MEDBAY){
 				System.out.print("T");
-				
 			} else if(map[index] == TypeOfPosition.WALL) {
 				System.out.print("|");
 			} else if(map[index] == TypeOfPosition.O2){
 				System.out.print("O");
 			} else if(map[index] == TypeOfPosition.REACTOR) {
 				System.out.print("R");
-				
 			} else if(map[index] == TypeOfPosition.LIGHTS) {
 				System.out.print("L");
 			} else {
-				System.out.print(" ");
+				System.out.print("_");
 			}				
 		}
 	}
