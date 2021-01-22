@@ -1,6 +1,5 @@
 
-import java.util.ArrayList;
-import java.util.Collection;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,18 +27,17 @@ public class Game extends Agent {
 	private static final String OVER = "Over"; 
 	
 	// Colors
-	public static final String ANSI_RESET = "\u001B[0m";
-	public static final String ANSI_BLACK = "\033[0;90m";
-	public static final String ANSI_RED = "\033[0;91m";
-	public static final String ANSI_GREEN = "\u001B[32m";
-	public static final String ANSI_YELLOW = "\033[0;93m";
-	public static final String ANSI_BLUE = "\033[0;94m";
-	public static final String ANSI_PURPLE = "\u001B[35m";
-	public static final String ANSI_CYAN = "\033[0;96m";
-	public static final String ANSI_WHITE = "\033[0;97m";
-	public static final String ANSI_LIME = "\u001B[36m";
-	public static final String ANSI_MAGENTA = "\033[0;95m";
-	
+	public static final String RESET = "\u001B[0m";
+	public static final String BLACK = "\033[0;30m";  
+	public static final String RED = "\033[0;91m";    
+    public static final String GREEN = "\033[0;32m";   
+    public static final String LIME = "\033[0;92m";  
+    public static final String YELLOW = "\033[0;33m"; 
+    public static final String BLUE = "\033[0;94m";   
+    public static final String MAGENTA = "\033[0;95m";
+    public static final String CYAN = "\033[0;96m";   
+    public static final String WHITE = "\033[0;97m";  
+    public static final String PURPLE = "\033[0;35m";  
 	
 	private int numOfImposters;
 	private int numOfCrewmates;
@@ -216,6 +214,7 @@ public class Game extends Agent {
 		Set<String> keys = maps.keySet();
 		Map<Integer, String> agentsPositions = new HashMap<>();
 		List<String> imposters = bb.getImposters();
+		
 
 		for(String key : keys) {
 			Position pos = maps.get(key);
@@ -233,41 +232,45 @@ public class Game extends Agent {
 			}
 			
 			index = j + i * COLUMNS;
+			String symbol = "";			
 			
 			if(agentsPositions.containsKey(index)) {
 				String key = agentsPositions.get(index);
 				isAgent = true;
-				String symbol = " ";
+				symbol = " ";
 												
 				if(imposters.contains(key)) symbol = "I";
 				else symbol = "C";
 					
 				if(key.equals(Colors.RED.toString())) {
-					System.out.print(ANSI_RED + symbol + ANSI_RESET);
-					
+					System.out.print(RED + symbol + RESET);
+										
 				} else if(key.equals(Colors.BLUE.toString())) {
-					System.out.print(ANSI_BLUE + symbol + ANSI_RESET);
+					System.out.print(BLUE + symbol + RESET);
+				
+				} else if(key.equals(Colors.YELLOW.toString())) {
+					System.out.print(YELLOW + symbol + RESET);
 					
 				} else if(key.equals(Colors.GREEN.toString())) {
-					System.out.print(ANSI_GREEN + symbol + ANSI_RESET);
+					System.out.print(GREEN + symbol + RESET);
 				
 				} else if(key.equals(Colors.LIME.toString())) {
-					System.out.print(ANSI_LIME + symbol + ANSI_RESET);
+					System.out.print(LIME + symbol + RESET);
 					
 				} else if(key.equals(Colors.PURPLE.toString())) {
-					System.out.print(ANSI_PURPLE + symbol + ANSI_RESET);
+					System.out.print(PURPLE + symbol +RESET);
 					
 				} else if(key.equals(Colors.BLACK.toString())) {
-					System.out.print(ANSI_BLACK + symbol + ANSI_RESET);
+					System.out.print(BLACK + symbol + RESET);
 					
 				} else if(key.equals(Colors.WHITE.toString())) {
-					System.out.print(ANSI_WHITE + symbol + ANSI_RESET);
+					System.out.print(WHITE + symbol + RESET);
 					
 				} else if(key.equals(Colors.CYAN.toString())) {
-					System.out.print(ANSI_CYAN + symbol + ANSI_RESET);
+					System.out.print(CYAN + symbol + RESET);
 					
 				} else if(key.equals(Colors.MAGENTA.toString())) {
-					System.out.print(ANSI_MAGENTA + symbol + ANSI_RESET);
+					System.out.print(MAGENTA + symbol + RESET);
 				}
 			}
 			
@@ -351,8 +354,6 @@ public class Game extends Agent {
 						break;
 					}		
 				}
-				
-				printMap();
 			}		
 		}	
 
