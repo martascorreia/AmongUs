@@ -1,11 +1,10 @@
 
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import jade.core.Agent;
 import jade.core.behaviours.FSMBehaviour;
@@ -14,6 +13,10 @@ import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+import jade.wrapper.AgentContainer;
+import jade.wrapper.AgentController;
+import jade.wrapper.StaleProxyException;
 
 public class Game extends Agent {
 
@@ -23,13 +26,27 @@ public class Game extends Agent {
 	private static final String PLAYING = "Playing";
 	private static final String MEETING = "Meeting";
 	private static final String OVER = "Over"; 
+	
+	// Colors
+	public static final String ANSI_RESET = "\u001B[0m";
+	public static final String ANSI_BLACK = "\033[0;90m";
+	public static final String ANSI_RED = "\033[0;91m";
+	public static final String ANSI_GREEN = "\u001B[32m";
+	public static final String ANSI_YELLOW = "\033[0;93m";
+	public static final String ANSI_BLUE = "\033[0;94m";
+	public static final String ANSI_PURPLE = "\u001B[35m";
+	public static final String ANSI_CYAN = "\033[0;96m";
+	public static final String ANSI_WHITE = "\033[0;97m";
+	public static final String ANSI_LIME = "\u001B[36m";
+	public static final String ANSI_MAGENTA = "\033[0;95m";
+	
+	
 	private int numOfImposters;
 	private int numOfCrewmates;
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
 	private TypeOfPosition[] map;
-	private List<Agent> crewmates;
-	private List<Agent> imposters;
+	private final Blackboard bb = Blackboard.getInstance();
 		
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -50,18 +67,46 @@ public class Game extends Agent {
 		// To get number of crewmates and imposters
 		Object[] args = getArguments();
 		if (args != null && args.length == 2) {
-			numOfCrewmates = Integer.parseInt((String) args[0]);
-			numOfImposters = Integer.parseInt((String) args[1]);
+			int numPlayers = Integer.parseInt((String) args[0]);
+			int numImposters = Integer.parseInt((String) args[1]);
+			
+			if(numPlayers > 10 || numPlayers < 4) {
+				System.out.println("Number of players should be between 4 and 10.");
+				return;
+			}
+			
+			if(numImposters > 3 || numImposters < 1) {
+				System.out.println("Number of imposters should be between 1 and 3.");
+				return;
+			}
+			
+			if(numPlayers < 5 && numImposters > 1) {
+				numOfCrewmates = numPlayers - numImposters;
+				numOfImposters = 1;
+				
+			} else if (numPlayers < 8 && numImposters > 2) {
+				numOfCrewmates = numPlayers - numImposters;
+				numOfImposters = 2;
+				
+			} else {
+				numOfCrewmates = numPlayers - numImposters;
+				numOfImposters = numImposters;
+			}
 
 		} else {
-			System.out.println("Parameters should be in the format: game:Game(numOfCrewmates, numOfImposters)");
+			System.out.println("Parameters should be in the format: game:Game(numOfPlayers, numOfImposters)");
 			return;
 		}
-
+		
+		
 		createMap();
 		printMap();
 		createAgents();
+		createBehaviour();
 		
+	}	
+	
+	private void createBehaviour() {
 		// FSM BEHAVIOUR
 		FSMBehaviour game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
@@ -88,8 +133,8 @@ public class Game extends Agent {
 		game.registerTransition(MEETING, OVER, 1);
 
 		addBehaviour(game);
-	}	
-	
+	}
+
 	private void createMap() {
 		this.map = new TypeOfPosition[LINES * COLUMNS];
 		
@@ -157,14 +202,30 @@ public class Game extends Agent {
 				map[index] = TypeOfPosition.NORMAL;
 			}	
 		}
+		
+		bb.setMap(map);
 	}
 
 	public void printMap() {
 		int j = 0;
 		int i = 0;
 		int index = 0;
+		boolean isAgent;
 		
+		Map<String, Position> maps = bb.getPositions();
+		Set<String> keys = maps.keySet();
+		Map<Integer, String> agentsPositions = new HashMap<>();
+		List<String> imposters = bb.getImposters();
+
+		for(String key : keys) {
+			Position pos = maps.get(key);
+			int ind = pos.getX() + pos.getY() * COLUMNS;
+			agentsPositions.put(ind, key);
+		}
+				
 		for(int x = 0; x < LINES * COLUMNS; x++, j++) {
+			isAgent = false;
+
 			if(j == COLUMNS) {
 				i++;
 				j = 0;
@@ -173,59 +234,126 @@ public class Game extends Agent {
 			
 			index = j + i * COLUMNS;
 			
-			if(map[index] == TypeOfPosition.VENT){
+			if(agentsPositions.containsKey(index)) {
+				String key = agentsPositions.get(index);
+				isAgent = true;
+				String symbol = " ";
+												
+				if(imposters.contains(key)) symbol = "I";
+				else symbol = "C";
+					
+				if(key.equals(Colors.RED.toString())) {
+					System.out.print(ANSI_RED + symbol + ANSI_RESET);
+					
+				} else if(key.equals(Colors.BLUE.toString())) {
+					System.out.print(ANSI_BLUE + symbol + ANSI_RESET);
+					
+				} else if(key.equals(Colors.GREEN.toString())) {
+					System.out.print(ANSI_GREEN + symbol + ANSI_RESET);
+				
+				} else if(key.equals(Colors.LIME.toString())) {
+					System.out.print(ANSI_LIME + symbol + ANSI_RESET);
+					
+				} else if(key.equals(Colors.PURPLE.toString())) {
+					System.out.print(ANSI_PURPLE + symbol + ANSI_RESET);
+					
+				} else if(key.equals(Colors.BLACK.toString())) {
+					System.out.print(ANSI_BLACK + symbol + ANSI_RESET);
+					
+				} else if(key.equals(Colors.WHITE.toString())) {
+					System.out.print(ANSI_WHITE + symbol + ANSI_RESET);
+					
+				} else if(key.equals(Colors.CYAN.toString())) {
+					System.out.print(ANSI_CYAN + symbol + ANSI_RESET);
+					
+				} else if(key.equals(Colors.MAGENTA.toString())) {
+					System.out.print(ANSI_MAGENTA + symbol + ANSI_RESET);
+				}
+			}
+			
+			if(map[index] == TypeOfPosition.VENT && !isAgent){
 				System.out.print("#");
 				
-			} else if(map[index] == TypeOfPosition.SHIELDS || map[index] == TypeOfPosition.FILLGAS 
+			} else if((map[index] == TypeOfPosition.SHIELDS || map[index] == TypeOfPosition.FILLGAS 
 					|| map[index] == TypeOfPosition.CARDSWIPE || map[index] == TypeOfPosition.ASTEROIDS
 					|| map[index] == TypeOfPosition.DOWNLOAD || map[index] == TypeOfPosition.UPLOAD
 					|| map[index] == TypeOfPosition.TRASH || map[index] == TypeOfPosition.WIRES 
-					|| map[index] == TypeOfPosition.MEDBAY){
+					|| map[index] == TypeOfPosition.MEDBAY) && !isAgent){
 				System.out.print("T");
-			} else if(map[index] == TypeOfPosition.WALL) {
+			} else if(map[index] == TypeOfPosition.WALL && !isAgent) {
 				System.out.print("|");
-			} else if(map[index] == TypeOfPosition.O2){
+			} else if(map[index] == TypeOfPosition.O2 && !isAgent){
 				System.out.print("O");
-			} else if(map[index] == TypeOfPosition.REACTOR) {
+			} else if(map[index] == TypeOfPosition.REACTOR && !isAgent) {
 				System.out.print("R");
-			} else if(map[index] == TypeOfPosition.LIGHTS) {
+			} else if(map[index] == TypeOfPosition.LIGHTS && !isAgent) {
 				System.out.print("L");
-			} else {
-				System.out.print("_");
+			} else if(!isAgent){
+				System.out.print(" ");
 			}				
 		}
+		
+		System.out.println();
 	}
 
-	/**
-	 * 
-	 */
-	private void createAgents() {
-		crewmates = new ArrayList<>();
-		imposters = new ArrayList<>();
+	private void createAgents() {		
+		Colors[] types = Colors.values();
+		int type = 0;
 		
-		for(int i = 0; i < numOfCrewmates; i++) {
-			Crewmate crew = new Crewmate();
-			crewmates.add(crew);
+		AgentContainer c = getContainerController();
+		
+		for(int i = 0; i < numOfCrewmates; i++, type++) {			
+			try {
+				Colors typeOfPosition = types[type];
+				AgentController crew = c.createNewAgent(typeOfPosition.toString(), "Crewmate", null);
+				crew.start();
+				bb.setPosition(typeOfPosition.toString(), 11, 5);
+			} catch (StaleProxyException e) {
+				System.out.println("Error while creating a Crewmate.");
+			}
 		}
 		
-		for(int i = 0; i < numOfImposters; i++) {
-			Imposter imp = new Imposter();
-			imposters.add(imp);
-		}	
+		for(int i = 0; i < numOfImposters; i++, type++) {
+			try {
+				Colors typeOfPosition = types[type];
+				AgentController imp = c.createNewAgent(typeOfPosition.toString(), "Imposter", null);
+				imp.start();
+				bb.setPosition(typeOfPosition.toString(), 11, 4);
+				bb.setImposters(typeOfPosition.toString());
+			} catch (StaleProxyException e) {
+				System.out.println("Error while creating an Imposter.");
+			}
+		}		
+		
+		//printMap();
 	}
 
-	/**
-	 * 
-	 * @author Marta Correia
-	 *
-	 */
 	public class Playing extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		@Override
 		public void action() {
-			
+			while(true) {
+				ACLMessage msg = myAgent.receive();
+
+				if(msg != null) {
+					String[] message = msg.getContent().split(" ");
+
+					if(message[0].equals("Body") ) { // Body YELLOW
+						System.out.println(msg.getSender() + " found " + message[1] + "'s body.");	
+						endValue = 1;
+						break;
+						
+					} else if(message[0].equals("Meeting")) { // Meeting
+						System.out.println(msg.getSender() + " called a meeting.");	
+						endValue = 1;
+						break;
+					}		
+				}
+				
+				printMap();
+			}		
 		}	
 
 		public int onEnd() {
@@ -249,7 +377,6 @@ public class Game extends Agent {
 	
 	public class Over extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
-		private int endValue;
 
 		@Override
 		public void action() {
