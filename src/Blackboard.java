@@ -25,8 +25,8 @@ public class Blackboard {
 	}
 	
 	public static Blackboard getInstance() {
-		if(blackboard != null) return blackboard;
-		return new Blackboard();
+		if(blackboard == null) blackboard = new Blackboard();
+		return blackboard;
 	}
 	
 	public Position getPosition(String key) {
