@@ -117,6 +117,15 @@ public class Game extends Agent {
 				return super.onEnd();
 			}
 		};
+		
+		TickerBehaviour prints = new TickerBehaviour(this,1000) {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			protected void onTick() {
+				printMap();	
+			}
+		};
 
 		// Registers the states of the Ant
 		game.registerFirstState(new Playing(), PLAYING);
@@ -140,20 +149,10 @@ public class Game extends Agent {
 		game.registerTransition(EMERGENCY, PLAYING, 1);
 		game.registerTransition(EMERGENCY, OVER, 2);
 		
-		TickerBehaviour printMap = new TickerBehaviour(this, 1000) {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected void onTick() {
-				printMap();
-				
-			}
-			
-		};
-		
 		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
-		addBehaviour(tbf.wrap(game));
-		addBehaviour(tbf.wrap(printMap));
+        addBehaviour(tbf.wrap(game));
+        addBehaviour(tbf.wrap(prints));
+	
 	}
 
 	private void createMap() {
@@ -321,6 +320,7 @@ public class Game extends Agent {
 		
 		System.out.println();
 	}
+	
 
 	private void createAgents() {		
 		Colors[] types = Colors.values();
@@ -384,14 +384,14 @@ public class Game extends Agent {
 						break;
 					}		
 				}
-				
 			}		
 		}	
-
+		
 		public int onEnd() {
 			return endValue;
 		}
 	}
+	
 	
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
