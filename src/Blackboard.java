@@ -85,4 +85,12 @@ public class Blackboard {
 		return result;
 	}
 	
+	public int getCollums() {
+		return this.COLUMNS;
+	}
+	
+	public int getLines() {
+		return this.LINES;
+	}
+	
 }
