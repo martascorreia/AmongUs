@@ -8,6 +8,9 @@ import java.util.Set;
 import jade.core.Agent;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.ParallelBehaviour;
+import jade.core.behaviours.ThreadedBehaviourFactory;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -114,6 +117,18 @@ public class Game extends Agent {
 				return super.onEnd();
 			}
 		};
+		
+		TickerBehaviour prints = new TickerBehaviour(this,1000) {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = -5129819062201833863L;
+
+			@Override
+			protected void onTick() {
+				printMap();	
+			}
+		};
 
 		// Registers the states of the Ant
 		game.registerFirstState(new Playing(), PLAYING);
@@ -130,7 +145,10 @@ public class Game extends Agent {
 		game.registerTransition(MEETING, PLAYING, 0);
 		game.registerTransition(MEETING, OVER, 1);
 
-		addBehaviour(game);
+		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
+        addBehaviour(tbf.wrap(game));
+        addBehaviour(tbf.wrap(prints));
+	
 	}
 
 	private void createMap() {
@@ -298,6 +316,7 @@ public class Game extends Agent {
 		
 		System.out.println();
 	}
+	
 
 	private void createAgents() {		
 		Colors[] types = Colors.values();
@@ -354,13 +373,15 @@ public class Game extends Agent {
 						break;
 					}		
 				}
+				//printMap();
 			}		
 		}	
-
+		
 		public int onEnd() {
 			return endValue;
 		}
 	}
+	
 	
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
