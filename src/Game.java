@@ -1,5 +1,3 @@
-
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +125,7 @@ public class Game extends Agent {
 			}
 		};
 
-		// Registers the states of the Ant
+		// Registers the states of the Game
 		game.registerFirstState(new Playing(), PLAYING);
 		game.registerState(new Meeting(), MEETING);
 		game.registerState(new Emergency(),EMERGENCY);

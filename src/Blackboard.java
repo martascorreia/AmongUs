@@ -76,4 +76,13 @@ public class Blackboard {
 		return imposters;
 	}
 	
+	public List<String> getAllPlayers() {
+		List<String> result = new ArrayList<String>();
+		for(String agent: positions.keySet()) {
+			result.add(agent);
+		}
+		
+		return result;
+	}
+	
 }
