@@ -8,6 +8,12 @@ public class Crewmate extends Agent {
 
 	private static final long serialVersionUID = 1L;
 	private final Blackboard bb = Blackboard.getInstance();
+	
+	// States
+	private final String PLAYING = "Playing";
+	private final String MEETING = "Meeting";
+	private final String EMERGENCY = "Emergency";
+	private static final String OVER = "Over"; 
 
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();

@@ -3,11 +3,15 @@
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import jade.core.Agent;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.ParallelBehaviour;
+import jade.core.behaviours.ThreadedBehaviourFactory;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -22,27 +26,28 @@ public class Game extends Agent {
 	private static final long serialVersionUID = 1L;
 	
 	// States
-	private static final String PLAYING = "Playing";
-	private static final String MEETING = "Meeting";
+	private final String PLAYING = "Playing";
+	private final String MEETING = "Meeting";
+	private final String EMERGENCY = "Emergency";
 	private static final String OVER = "Over"; 
 	
 	// Colors
-	public static final String RESET = "\u001B[0m";
-	public static final String BLACK = "\033[0;30m";  
-	public static final String RED = "\033[0;91m";    
-    public static final String GREEN = "\033[0;32m";   
-    public static final String LIME = "\033[0;92m";  
-    public static final String YELLOW = "\033[0;33m"; 
-    public static final String BLUE = "\033[0;94m";   
-    public static final String MAGENTA = "\033[0;95m";
-    public static final String CYAN = "\033[0;96m";   
-    public static final String WHITE = "\033[0;97m";  
-    public static final String PURPLE = "\033[0;35m";  
+	public final String RESET = "\u001B[0m";
+	public final String BLACK = "\033[0;30m";  
+	public final String RED = "\033[0;91m";    
+    public final String GREEN = "\033[0;32m";   
+    public final String LIME = "\033[0;92m";  
+    public final String YELLOW = "\033[0;33m"; 
+    public final String BLUE = "\033[0;94m";   
+    public final String MAGENTA = "\033[0;95m";
+    public final String CYAN = "\033[0;96m";   
+    public final String WHITE = "\033[0;97m";  
+    public final String PURPLE = "\033[0;35m";  
 	
 	private int numOfImposters;
 	private int numOfCrewmates;
-	private static final int LINES = 14;
-	private static final int COLUMNS = 31;
+	private final int LINES = 14;
+	private final int COLUMNS = 31;
 	private TypeOfPosition[] map;
 	private final Blackboard bb = Blackboard.getInstance();
 		
@@ -96,9 +101,7 @@ public class Game extends Agent {
 			return;
 		}
 		
-		
 		createMap();
-		printMap();
 		createAgents();
 		createBehaviour();
 		
@@ -118,19 +121,39 @@ public class Game extends Agent {
 		// Registers the states of the Ant
 		game.registerFirstState(new Playing(), PLAYING);
 		game.registerState(new Meeting(), MEETING);
+		game.registerState(new Emergency(),EMERGENCY);
 		game.registerLastState(new Over(), OVER);
 
 		// Registers the transitions	
 		// PLAYING
 		game.registerTransition(PLAYING, PLAYING, 0);
 		game.registerTransition(PLAYING, MEETING, 1);	
-		game.registerTransition(PLAYING, OVER, 2);	
+		game.registerTransition(PLAYING, EMERGENCY, 2);
+		game.registerTransition(PLAYING, OVER, 3);	
 
 		// MEETING
 		game.registerTransition(MEETING, PLAYING, 0);
 		game.registerTransition(MEETING, OVER, 1);
+		
+		// EMERGENCY
+		game.registerTransition(EMERGENCY, EMERGENCY, 0);
+		game.registerTransition(EMERGENCY, PLAYING, 1);
+		game.registerTransition(EMERGENCY, OVER, 2);
+		
+		TickerBehaviour printMap = new TickerBehaviour(this, 1000) {
+			private static final long serialVersionUID = 1L;
 
-		addBehaviour(game);
+			@Override
+			protected void onTick() {
+				printMap();
+				
+			}
+			
+		};
+		
+		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
+		addBehaviour(tbf.wrap(game));
+		addBehaviour(tbf.wrap(printMap));
 	}
 
 	private void createMap() {
@@ -301,14 +324,21 @@ public class Game extends Agent {
 
 	private void createAgents() {		
 		Colors[] types = Colors.values();
+		TypeOfPosition[] tasks = TypeOfPosition.values();
 		int type = 0;
 		
 		AgentContainer c = getContainerController();
+		Random random = new Random();
 		
 		for(int i = 0; i < numOfCrewmates; i++, type++) {			
 			try {
-				Colors typeOfPosition = types[type];
-				AgentController crew = c.createNewAgent(typeOfPosition.toString(), "Crewmate", null);
+				Colors typeOfPosition = types[type];				
+				Object args[] = new Object[3];
+				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				
+				AgentController crew = c.createNewAgent(typeOfPosition.toString(), "Crewmate", args);
 				crew.start();
 				bb.setPosition(typeOfPosition.toString(), 11, 5);
 			} catch (StaleProxyException e) {
@@ -354,6 +384,7 @@ public class Game extends Agent {
 						break;
 					}		
 				}
+				
 			}		
 		}	
 
@@ -363,6 +394,20 @@ public class Game extends Agent {
 	}
 	
 	public class Meeting extends OneShotBehaviour {
+		private static final long serialVersionUID = 1L;
+		private int endValue;
+
+		@Override
+		public void action() {
+			
+		}	
+
+		public int onEnd() {
+			return endValue;
+		}
+	}
+	
+	public class Emergency extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
