@@ -18,6 +18,7 @@ public class Reactor extends Agent{
 	
 	private int timer = 0;
 	private boolean sabotagem = false;
+	private Blackboard bb = Blackboard.getInstance();
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -75,8 +76,7 @@ public class Reactor extends Agent{
 						System.out.println("REACTOR SABOTAGE");
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorProblem");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
-						
+						List<String> players = bb.getAllPlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -85,20 +85,21 @@ public class Reactor extends Agent{
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						timer = 40;
 						sabotagem = true;
-						
+												
 					}else if(message.equals("ReactorFix")) {
 						System.out.println("REACTOR FIXED");
 
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorFixed");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
-						
+						List<String> players = bb.getAllPlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						
 						send(msg);
 						sabotagem = false;
+						bb.setEmergencyCalling(false);
+
 					} else if(message.contentEquals("GameOver")) {
 						// stop behaviour
 					}

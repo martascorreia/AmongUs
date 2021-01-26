@@ -13,7 +13,8 @@ public class Blackboard {
 	private int numOfCrewmates;
 	private int numOfPlayers;
 	private static final int LINES = 14;
-	private static final int COLUMNS = 31;		
+	private static final int COLUMNS = 31;
+	private boolean emergencyCalling;
 
 	private TypeOfPosition[] map;
 	
@@ -24,6 +25,7 @@ public class Blackboard {
 		this.tasks = new HashMap<>();
 		this.emergencies = new HashMap<>();
 		this.imposters = new ArrayList<>();
+		this.emergencyCalling = false;
 	}
 	
 	public static Blackboard getInstance() {
@@ -117,5 +119,13 @@ public class Blackboard {
 	
 	public List<String> getImposters() {
 		return imposters;
+	}
+	
+	public void setEmergencyCalling(boolean value) {
+		this.emergencyCalling = value;
+	}
+	
+	public boolean getEmergencyCalling() {
+		return this.emergencyCalling;
 	}
 }

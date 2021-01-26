@@ -16,8 +16,8 @@ import jade.lang.acl.ACLMessage;
 public class Oxygen extends Agent{
 	private static final long serialVersionUID = 1L;
 	private int timer = 40;
-	private boolean sabotage = false;
-	
+	private boolean sabotagem = false;
+	private Blackboard bb = Blackboard.getInstance();
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -71,7 +71,7 @@ public class Oxygen extends Agent{
 					if(rec.getContent().equals("OxygenSabotage")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenProblem");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllPlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -82,12 +82,13 @@ public class Oxygen extends Agent{
 					}else if(rec.getContent().equals("OxygenFix")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenFixed");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllPlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						send(msg);
-						sabotage = false;
+						sabotagem = false;
+						bb.setEmergencyCalling(false);
 						
 					}
 				}	

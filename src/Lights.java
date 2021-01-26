@@ -15,7 +15,7 @@ public class Lights extends Agent {
 	private static final long serialVersionUID = 1L;
 	private int timer = 40;
 	private boolean sabotagem = false;
-	
+	private Blackboard bb = Blackboard.getInstance();
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -70,7 +70,7 @@ public class Lights extends Agent {
 					if(rec.getContent().equals("LightsSabotage")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("LightsProblem");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllPlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -81,12 +81,13 @@ public class Lights extends Agent {
 					}else if(rec.getContent().equals("LightsFix")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("LightsFixed");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllPlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						send(msg);
 						sabotagem = false;
+						bb.setEmergencyCalling(false);
 						
 					}
 				}	
