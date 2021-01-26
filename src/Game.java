@@ -7,7 +7,6 @@ import java.util.Set;
 import jade.core.Agent;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
-import jade.core.behaviours.ParallelBehaviour;
 import jade.core.behaviours.ThreadedBehaviourFactory;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
@@ -341,6 +340,7 @@ public class Game extends Agent {
 		AgentContainer c = getContainerController();
 		Random random = new Random();
 		
+		// CREW
 		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {			
 			try {
 				Object args[] = new Object[3];
@@ -357,19 +357,36 @@ public class Game extends Agent {
 			}
 		}
 		
+		// IMPOSTERS
 		for(int i = 0; i < numOfImposters; i++, indexColor++) {
 			try {
+				Object args[] = new Object[3];
+				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				
 				Colors name = colors[indexColor];
 				bb.setPlayerPosition(name.toString(), 11, 4);
 				bb.setImposters(name.toString());
-				AgentController imp = c.createNewAgent(name.toString(), "Imposter", null);
+				AgentController imp = c.createNewAgent(name.toString(), "Imposter", args);
 				imp.start();
 			} catch (StaleProxyException e) {
 				System.out.println("Error while creating an Imposter.");
 			}
 		}		
 		
-		//printMap();
+		// EMERGENCIES
+		try {
+			AgentController lights = c.createNewAgent("LIGHTS", "Lights", null);
+			lights.start();			
+			AgentController reactor = c.createNewAgent("REACTOR", "Reactor", null);
+			reactor.start();
+			AgentController oxygen = c.createNewAgent("OXYGEN", "Oxygen", null);
+			oxygen.start();
+		} catch (StaleProxyException e) {
+			System.out.println("Error while creating agent emergencies.");
+		}
+
 	}
 
 	public class Playing extends OneShotBehaviour {

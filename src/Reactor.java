@@ -12,8 +12,11 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
 public class Reactor extends Agent{
-
-	private int timer = 40;
+	
+	//REACTOR
+	private static final long serialVersionUID = 1L;
+	
+	private int timer = 0;
 	private boolean sabotagem = false;
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -30,49 +33,80 @@ public class Reactor extends Agent{
 			System.out.println("Exception while registering the service!");
 			return;
 		}
-		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
+	
 		TickerBehaviour reactorTime = new TickerBehaviour(this,1000) {
+			private static final long serialVersionUID = 1L;
 
 			@Override
 			protected void onTick() {
 				if(sabotagem) {
-					timer-=1;
+					timer--;
+					
+					if(timer == 0) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("GameOver");
+						List<String> players = Blackboard.getInstance().getAllPlayers();
+						
+						for(String player : players) {
+							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
+						}
+						
+						msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));
+						msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
+						
+						send(msg);
+					}
 				}
 			}
 		};
 		
 		CyclicBehaviour interaction = new CyclicBehaviour() {
 
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			public void action() {
 				ACLMessage rec = null;
 				rec= receive();
 				if(rec != null){
-					if(rec.getContent().equals("ReactorSabotage")) {
+					String message = rec.getContent();
+					
+					if(message.equals("ReactorSabotage")) {
+						System.out.println("REACTOR SABOTAGE");
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorProblem");
 						List<String> players = Blackboard.getInstance().getAllPlayers();
+						
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
+						
 						send(msg);
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						timer = 40;
 						sabotagem = true;
-					}else if(rec.getContent().equals("ReactorFix")) {
+						
+					}else if(message.equals("ReactorFix")) {
+						System.out.println("REACTOR FIXED");
+
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorFixed");
 						List<String> players = Blackboard.getInstance().getAllPlayers();
+						
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
+						
 						send(msg);
 						sabotagem = false;
-						
+					} else if(message.contentEquals("GameOver")) {
+						// stop behaviour
 					}
 				}	
 			}
 		};
+		
+		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
 		addBehaviour(tbf.wrap(reactorTime));
 		addBehaviour(tbf.wrap(interaction));
 	}

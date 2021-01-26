@@ -12,8 +12,10 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
 public class Lights extends Agent {
+	private static final long serialVersionUID = 1L;
 	private int timer = 40;
 	private boolean sabotagem = false;
+	
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -32,15 +34,33 @@ public class Lights extends Agent {
 		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
 		TickerBehaviour lightsTime = new TickerBehaviour(this,1000) {
 
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			protected void onTick() {
 				if(sabotagem) {
 					timer-=1;
+					
+					if(timer == 0) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("GameOver");
+						List<String> players = Blackboard.getInstance().getAllPlayers();
+						
+						for(String player : players) {
+							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
+						}
+						
+						msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));
+						msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));
+						
+						send(msg);
+					}
 				}
 			}
 		};
 		
 		CyclicBehaviour interaction = new CyclicBehaviour() {
+			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void action() {

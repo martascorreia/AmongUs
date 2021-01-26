@@ -14,8 +14,10 @@ import jade.lang.acl.ACLMessage;
 
 
 public class Oxygen extends Agent{
+	private static final long serialVersionUID = 1L;
 	private int timer = 40;
-	private boolean sabotagem = false;
+	private boolean sabotage = false;
+	
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -33,16 +35,33 @@ public class Oxygen extends Agent{
 		}
 		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
 		TickerBehaviour oxygenTime = new TickerBehaviour(this,1000) {
+			private static final long serialVersionUID = 1L;
 
 			@Override
 			protected void onTick() {
-				if(sabotagem) {
+				if(sabotage) {
 					timer-=1;
+					
+					if(timer == 0) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("GameOver");
+						List<String> players = Blackboard.getInstance().getAllPlayers();
+						
+						for(String player : players) {
+							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
+						}
+						
+						msg.addReceiver(new AID("O2",AID.ISLOCALNAME));
+						msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
+						
+						send(msg);
+					}
 				}
 			}
 		};
 		
 		CyclicBehaviour interaction = new CyclicBehaviour() {
+			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void action() {
@@ -59,7 +78,7 @@ public class Oxygen extends Agent{
 						send(msg);
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						timer = 40;
-						sabotagem = true;
+						sabotage = true;
 					}else if(rec.getContent().equals("OxygenFix")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenFixed");
@@ -68,7 +87,7 @@ public class Oxygen extends Agent{
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						send(msg);
-						sabotagem = false;
+						sabotage = false;
 						
 					}
 				}	

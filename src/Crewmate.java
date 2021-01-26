@@ -1,5 +1,7 @@
 import java.util.HashMap;
 import java.util.Map;
+
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.FSMBehaviour;
@@ -89,7 +91,7 @@ public class Crewmate extends Agent {
 
 		// DOING TASK
 		game.registerTransition(DOINGTASK, DOINGTASK,0);
-		game.registerTransition(DOINGTASK, PLAYING,1);
+		game.registerTransition(DOINGTASK, PLAYING, 1);
 		game.registerTransition(DOINGTASK, MEETING,2);
 		game.registerTransition(DOINGTASK, EMERGENCY,3);
 		game.registerTransition(DOINGTASK, OVER,4);
@@ -187,15 +189,15 @@ public class Crewmate extends Agent {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
-		public void action() {
-            try {
+		public void action() {     
+			
+			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-            
+			
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
-				
 				// INFO
 				
 				// MOVEMENT
@@ -203,8 +205,8 @@ public class Crewmate extends Agent {
 					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
 					
 					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
-						doingTaskCounter=3;
-						endValue=3;
+						doingTaskCounter = 3;
+						endValue = 3;
 						states.replace("task", true);
 						states.replace("playing", false);
 
@@ -232,6 +234,7 @@ public class Crewmate extends Agent {
 			}else {
 				endValue = 2;
 			}
+			
 		}	
 
 		public int onEnd() {
@@ -314,7 +317,7 @@ public class Crewmate extends Agent {
 
 		public void action() {
 			try {
-					Thread.sleep(1000);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
 			 
@@ -325,8 +328,11 @@ public class Crewmate extends Agent {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				Position emergency = bb.getEmergencyPosition("REACTOR");
 
-				if(DistanceUtils.manDistance(myPosition,emergency) == 0) {
-					// DOES REACTOR
+				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					msg.setContent("ReactorFix");
+					msg.addReceiver(new AID("REACTOR", AID.ISLOCALNAME));
+					send(msg);
 
 				}else {
 					endValue = 0;
@@ -340,7 +346,10 @@ public class Crewmate extends Agent {
 				Position emergency = bb.getEmergencyPosition("LIGHTS");
 				
 				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					// DOES LIGTHS
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					msg.setContent("LightsFix");
+					msg.addReceiver(new AID("LIGHTS", AID.ISLOCALNAME));
+					send(msg);
 
 				}else {
 					endValue = 0;
@@ -354,8 +363,11 @@ public class Crewmate extends Agent {
 				Position emergency = bb.getEmergencyPosition("O2");
 				
 				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					// DOES O2
-
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					msg.setContent("O2Fix");
+					msg.addReceiver(new AID("O2", AID.ISLOCALNAME));
+					send(msg);
+					
 				}else {
 					endValue = 0;
 					myPosition = DistanceUtils.nextMove(myPosition, emergency);
