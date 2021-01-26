@@ -244,7 +244,7 @@ public class Game extends Agent {
 		int index = 0;
 		boolean isAgent;
 		
-		Map<String, Position> maps = bb.getPlayersPositions();
+		Map<String, Position> maps = bb.getAlivePlayersPositions();
 		Set<String> keys = maps.keySet();
 		Map<Integer, String> agentsPositions = new HashMap<>();
 		List<String> imposters = bb.getImposters();

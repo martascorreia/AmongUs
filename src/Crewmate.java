@@ -178,6 +178,8 @@ public class Crewmate extends Agent {
 				// Dead
 				}else if(msg.equals("YouAreDead")) {
 					states.replace("dead", true);
+					Position pos = bb.getAlivePlayersPositions().get(getLocalName());
+					bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
 
 				}
 			}

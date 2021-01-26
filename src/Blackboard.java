@@ -5,7 +5,8 @@ import java.util.Map;
 
 public class Blackboard {
 
-	private Map<String, Position> players;
+	private Map<String, Position> alivePlayers;
+	private Map<String, Position> deadPlayers;
 	private Map<String, Position> tasks;
 	private Map<String, Position> emergencies;
 	private List<String> imposters;
@@ -15,13 +16,17 @@ public class Blackboard {
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
 	private boolean emergencyCalling;
+	private int imposterVision = 4;
+	private int crewmateVision = 2;
+	private int imposterKillDistance = 1;
 
 	private TypeOfPosition[] map;
 	
 	private static Blackboard blackboard;
 	
 	private Blackboard() {
-		this.players = new HashMap<>();
+		this.alivePlayers = new HashMap<>();
+		this.deadPlayers = new HashMap<>();
 		this.tasks = new HashMap<>();
 		this.emergencies = new HashMap<>();
 		this.imposters = new ArrayList<>();
@@ -35,23 +40,29 @@ public class Blackboard {
 	
 	// PLAYERS
 	public Position getPlayerPosition(String key) {
-		return players.get(key);
+		if(deadPlayers.containsKey(key)) return deadPlayers.get(key);
+		return alivePlayers.get(key);
 	}
 	
 	public void setPlayerPosition(String key, int x, int y) {
-		if(players.containsKey(key)) players.replace(key , new Position(x, y));
-		else players.put(key, new Position(x, y));
+		if(deadPlayers.containsKey(key)) {
+			if(deadPlayers.containsKey(key)) deadPlayers.replace(key , new Position(x, y));
+			else deadPlayers.put(key, new Position(x, y));
+		} else {
+			if(alivePlayers.containsKey(key)) alivePlayers.replace(key , new Position(x, y));
+			else alivePlayers.put(key, new Position(x, y));
+		}		
 	}
 	
-	public Map<String, Position> getPlayersPositions(){
+	public Map<String, Position> getAlivePlayersPositions(){
 		Map<String, Position> newMap = new HashMap<>();
-		newMap.putAll(players);
+		newMap.putAll(alivePlayers);
 		return newMap;
 	}
 
-	public List<String> getAllPlayers() {
+	public List<String> getAllAlivePlayers() {
 		List<String> result = new ArrayList<String>();
-		for(String agent: players.keySet()) {
+		for(String agent: alivePlayers.keySet()) {
 			result.add(agent);
 		}
 		
@@ -121,11 +132,35 @@ public class Blackboard {
 		return imposters;
 	}
 	
+	// EMERGENCIES
 	public void setEmergencyCalling(boolean value) {
 		this.emergencyCalling = value;
 	}
 	
 	public boolean getEmergencyCalling() {
 		return this.emergencyCalling;
+	}
+	
+	// VISIONS
+	public int getImposterVision() {
+		return imposterVision;
+	}
+	
+	public int getCrewmateVision() {
+		return crewmateVision;
+	}
+	
+	// DEAD
+	public Map<String, Position> getDeadPlayerss(String key) {
+		return deadPlayers;
+	}
+	
+	public void setPlayerAsDead(String key, int x, int y) {
+		deadPlayers.put(key, new Position (x, y));
+		alivePlayers.remove(key);
+	}
+	
+	public int getDistanceKill() {
+		return imposterKillDistance;
 	}
 }

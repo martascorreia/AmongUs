@@ -16,7 +16,7 @@ import jade.lang.acl.ACLMessage;
 public class Oxygen extends Agent{
 	private static final long serialVersionUID = 1L;
 	private int timer = 40;
-	private boolean sabotagem = false;
+	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -45,7 +45,7 @@ public class Oxygen extends Agent{
 					if(timer == 0) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("GameOver");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
+						List<String> players = Blackboard.getInstance().getAllAlivePlayers();
 						
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
@@ -71,7 +71,7 @@ public class Oxygen extends Agent{
 					if(rec.getContent().equals("OxygenSabotage")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenProblem");
-						List<String> players = bb.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -82,12 +82,12 @@ public class Oxygen extends Agent{
 					}else if(rec.getContent().equals("OxygenFix")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenFixed");
-						List<String> players = bb.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						send(msg);
-						sabotagem = false;
+						sabotage = false;
 						bb.setEmergencyCalling(false);
 						
 					}

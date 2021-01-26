@@ -17,7 +17,7 @@ public class Reactor extends Agent{
 	private static final long serialVersionUID = 1L;
 	
 	private int timer = 0;
-	private boolean sabotagem = false;
+	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -40,13 +40,13 @@ public class Reactor extends Agent{
 
 			@Override
 			protected void onTick() {
-				if(sabotagem) {
+				if(sabotage) {
 					timer--;
 					
 					if(timer == 0) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("GameOver");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
+						List<String> players = Blackboard.getInstance().getAllAlivePlayers();
 						
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
@@ -76,7 +76,7 @@ public class Reactor extends Agent{
 						System.out.println("REACTOR SABOTAGE");
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorProblem");
-						List<String> players = bb.getAllPlayers();
+						List<String> players = bb.getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -84,20 +84,20 @@ public class Reactor extends Agent{
 						send(msg);
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						timer = 40;
-						sabotagem = true;
+						sabotage = true;
 												
 					}else if(message.equals("ReactorFix")) {
 						System.out.println("REACTOR FIXED");
 
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorFixed");
-						List<String> players = bb.getAllPlayers();
+						List<String> players = bb.getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						
 						send(msg);
-						sabotagem = false;
+						sabotage = false;
 						bb.setEmergencyCalling(false);
 
 					} else if(message.contentEquals("GameOver")) {

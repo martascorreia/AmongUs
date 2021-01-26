@@ -1,7 +1,10 @@
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
 public class DistanceUtils {
+	
+	private final static Blackboard bb = Blackboard.getInstance();
 
 	public static int manDistance(Position p1, Position p2) {
 		return Math.abs(p1.getX() - p2.getX()) + Math.abs(p1.getY() - p2.getY());
@@ -62,6 +65,21 @@ public class DistanceUtils {
 		}
 		
 		return map[newP.getX() + newP.getY()*bb.getCollums()] == TypeOfPosition.WALL ? randomMove(my): newP;
+	}
+	
+	public static Map<String, Position> getPlayersNear(String name, double d, Map<String, Position> players) {
+		Position myPosition = bb.getPlayerPosition(name);				
+		String[] keys = players.keySet().toArray(new String[players.keySet().size()]);
+
+		Map<String, Position> playersNear = new HashMap<>();
+		for(String key : keys) {
+			Position value = players.get(key);
+			if(DistanceUtils.manDistance(myPosition, value) <= d && !key.equals(name)) {
+				playersNear.put(key, value);
+			}
+		}			
+		
+		return playersNear;
 	}
 }
 

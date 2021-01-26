@@ -1,6 +1,7 @@
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -230,10 +231,32 @@ public class Imposter extends Agent {
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());				
 				
-				callReactor();
+				Map<String, Position> imposterVision = DistanceUtils.getPlayersNear(getLocalName(), bb.getImposterVision(), bb.getAlivePlayersPositions());
+				//Map<String, Position> crewmateVision = DistanceUtils.getPlayersNear(getLocalName(), bb.getCrewmateVision(), bb.getPlayersPositions());
+				Map<String, Position> killable = DistanceUtils.getPlayersNear(getLocalName(), bb.getDistanceKill(), imposterVision);
+				
+				if(killable.size() == 1) {
+					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
+					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNear(name, bb.getCrewmateVision(), imposterVision);
+					
+					if(crewmatesSee.isEmpty()) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("YouAreDead");
+						msg.addReceiver(new AID(name,AID.ISLOCALNAME));
+						send(msg);
+						myPosition = killable.get(name);
+						
+						// CALL EMERGENCY
+						if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+							callReactor();
+						} else {
+							callOxygen();
+						}
+					}
+				}
 				
 				// MOVEMENT
-				if(!tasks.isEmpty()) {					
+				else if(!tasks.isEmpty()) {					
 					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
 					
 					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
@@ -269,28 +292,30 @@ public class Imposter extends Agent {
 			
 		}	
 
+		
+
 		private void callReactor() {
+			bb.setEmergencyCalling(true);
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			msg.setContent("ReactorSabotage");				
 			msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));				
-			send(msg);
-			
+			send(msg);			
 		}
 		
 		private void callLigths() {
+			bb.setEmergencyCalling(true);
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			msg.setContent("LigthsSabotage");				
 			msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));				
-			send(msg);
-			
+			send(msg);			
 		}
 		
-		private void callOxygen() {
+		private void callOxygen() {		
+			bb.setEmergencyCalling(true);
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			msg.setContent("OxygenSabotage");				
 			msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));				
 			send(msg);
-			
 		}
 
 		public int onEnd() {

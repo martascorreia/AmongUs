@@ -44,7 +44,7 @@ public class Lights extends Agent {
 					if(timer == 0) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("GameOver");
-						List<String> players = Blackboard.getInstance().getAllPlayers();
+						List<String> players = Blackboard.getInstance().getAllAlivePlayers();
 						
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
@@ -70,7 +70,7 @@ public class Lights extends Agent {
 					if(rec.getContent().equals("LightsSabotage")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("LightsProblem");
-						List<String> players = bb.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -81,7 +81,7 @@ public class Lights extends Agent {
 					}else if(rec.getContent().equals("LightsFix")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("LightsFixed");
-						List<String> players = bb.getInstance().getAllPlayers();
+						List<String> players = bb.getInstance().getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
