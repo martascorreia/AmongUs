@@ -177,15 +177,12 @@ public class Game extends Agent {
 				
 			} else if(index == 157) {
 				map[index] = TypeOfPosition.REACTOR;
-				bb.setEmergencyPosition(TypeOfPosition.REACTOR.toString(), new Position(x, y));
 
 			} else if(index == 320) {
 				map[index] = TypeOfPosition.LIGHTS;
-				bb.setEmergencyPosition(TypeOfPosition.LIGHTS.toString(), new Position(x, y));
 			
 			} else if(index == 177) {
 				map[index] = TypeOfPosition.O2;
-				bb.setEmergencyPosition(TypeOfPosition.O2.toString(), new Position(x, y));
 				
 			} else if(index == 34) {
 				map[index] = TypeOfPosition.FILLGAS;

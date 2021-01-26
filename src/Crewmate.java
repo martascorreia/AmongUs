@@ -5,6 +5,7 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.ThreadedBehaviourFactory;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -76,7 +77,7 @@ public class Crewmate extends Agent {
 		game.registerFirstState(new Playing(), PLAYING);
 		game.registerState(new DoingTask(),DOINGTASK);
 		game.registerState(new Meeting(), MEETING);
-		game.registerState(new Emergency(),EMERGENCY);
+		game.registerState(new Emergency(this,1000),EMERGENCY);
 		game.registerLastState(new Over(), OVER);
 
 		// Registers the transitions	
@@ -119,9 +120,9 @@ public class Crewmate extends Agent {
 		@Override
 		public void action() {
 			ACLMessage rec = null;
-			rec = receive();
+			rec=receive();
 			
-			if(rec != null) {				
+			if(rec!=null) {				
 				String msg = rec.getContent();
 				
 				// REACTOR
@@ -307,69 +308,34 @@ public class Crewmate extends Agent {
 		}
 	}
 
-	public class Emergency extends OneShotBehaviour {
+	public class Emergency extends TickerBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
+		public Emergency(Agent a, long period) {
+			super(a, period);
+		}
 
-		public void action() {
-			try {
-					Thread.sleep(1000);
-			} catch (InterruptedException e) {
-			}
-			 
+		@Override
+		public void onTick() {
 			if(states.get("dead")) {
 				endValue = 1;
 				
-			} else if(states.get("reactor")) {
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("REACTOR");
-
-				if(DistanceUtils.manDistance(myPosition,emergency) == 0) {
-					// DOES REACTOR
-
-				}else {
-					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+			}else if(states.get("reactor")) {
+				// go to reactor
 				endValue = 0;
-			} else if(states.get("lights")) {
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("LIGHTS");
-				
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					// DOES LIGTHS
-
-				}else {
-					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+			}else if(states.get("lights")) {
+				// go to lights
 				endValue = 0;
-			} else if(states.get("oxygen")){
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("O2");
-				
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					// DOES O2
-
-				}else {
-					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				endValue = 0;		
+			}else if(states.get("oxygen")){
+				// go to oxygen
+				endValue = 0;
 				
 			}else if(states.get("over")) {
 				endValue = 3;
 				
 			}else if(states.get("playing")){
 				endValue = 1;
-				
 			}else {
 				endValue = 2;
 			}

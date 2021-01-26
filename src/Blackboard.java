@@ -3,11 +3,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jade.core.Agent;
+
 public class Blackboard {
 
 	private Map<String, Position> players;
 	private Map<String, Position> tasks;
-	private Map<String, Position> emergencies;
 	private List<String> imposters;
 	private int numOfImposters;
 	private int numOfCrewmates;
@@ -22,7 +23,6 @@ public class Blackboard {
 	private Blackboard() {
 		this.players = new HashMap<>();
 		this.tasks = new HashMap<>();
-		this.emergencies = new HashMap<>();
 		this.imposters = new ArrayList<>();
 	}
 	
@@ -31,7 +31,6 @@ public class Blackboard {
 		return blackboard;
 	}
 	
-	// PLAYERS
 	public Position getPlayerPosition(String key) {
 		return players.get(key);
 	}
@@ -46,17 +45,7 @@ public class Blackboard {
 		newMap.putAll(players);
 		return newMap;
 	}
-
-	public List<String> getAllPlayers() {
-		List<String> result = new ArrayList<String>();
-		for(String agent: players.keySet()) {
-			result.add(agent);
-		}
-		
-		return result;
-	}
 	
-	// MAP	
 	public TypeOfPosition[] getMap() {
 		return map;
 	}
@@ -65,7 +54,6 @@ public class Blackboard {
 		this.map = map;		
 	}
 	
-	// TASKS
 	public Position getTaskPosition(String key) {
 		return tasks.get(key);
 	}
@@ -74,16 +62,6 @@ public class Blackboard {
 		tasks.put(key, value);
 	}
 	
-	// EMERGENCIES
-	public Position getEmergencyPosition(String key) {
-		return emergencies.get(key);
-	}
-	
-	public void setEmergencyPosition(String key, Position value) {
-		emergencies.put(key, value);
-	}
-	
-	// VARIABLES
 	public void setNum(int numOfPlayers, int numOfImposters) {
 		this.numOfPlayers = numOfPlayers;
 		this.numOfCrewmates = numOfPlayers - numOfImposters;
@@ -102,6 +80,23 @@ public class Blackboard {
 		return numOfPlayers;
 	}
 	
+	public void setImposters(String color) {
+		imposters.add(color);
+	}
+	
+	public List<String> getImposters() {
+		return imposters;
+	}
+	
+	public List<String> getAllPlayers() {
+		List<String> result = new ArrayList<String>();
+		for(String agent: players.keySet()) {
+			result.add(agent);
+		}
+		
+		return result;
+	}
+	
 	public int getCollums() {
 		return COLUMNS;
 	}
@@ -110,12 +105,4 @@ public class Blackboard {
 		return LINES;
 	}
 	
-	// IMPOSTER
-	public void setImposters(String color) {
-		imposters.add(color);
-	}
-	
-	public List<String> getImposters() {
-		return imposters;
-	}
 }
