@@ -67,14 +67,14 @@ public class DistanceUtils {
 		return map[newP.getX() + newP.getY()*bb.getCollums()] == TypeOfPosition.WALL ? randomMove(my): newP;
 	}
 	
-	public static Map<String, Position> getPlayersNear(String name, double d, Map<String, Position> players) {
+	public static Map<String, Position> getPlayersNearImp(String name, double d, Map<String, Position> players) {
 		Position myPosition = bb.getPlayerPosition(name);				
 		String[] keys = players.keySet().toArray(new String[players.keySet().size()]);
 
 		Map<String, Position> playersNear = new HashMap<>();
 		for(String key : keys) {
 			Position value = players.get(key);
-			if(DistanceUtils.manDistance(myPosition, value) <= d && !key.equals(name)) {
+			if(DistanceUtils.manDistance(myPosition, value) <= d && !key.equals(name) && !bb.getImposters().contains(key)) {
 				playersNear.put(key, value);
 			}
 		}			

@@ -231,13 +231,13 @@ public class Imposter extends Agent {
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());				
 				
-				Map<String, Position> imposterVision = DistanceUtils.getPlayersNear(getLocalName(), bb.getImposterVision(), bb.getAlivePlayersPositions());
-				//Map<String, Position> crewmateVision = DistanceUtils.getPlayersNear(getLocalName(), bb.getCrewmateVision(), bb.getPlayersPositions());
-				Map<String, Position> killable = DistanceUtils.getPlayersNear(getLocalName(), bb.getDistanceKill(), imposterVision);
+				Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayersPositions());
+				Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
+				Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
 				
-				if(killable.size() == 1) {
+				if(killable.size() == 1 && killCooldownCounter == 0) {
 					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
-					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNear(name, bb.getCrewmateVision(), imposterVision);
+					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
 					
 					if(crewmatesSee.isEmpty()) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
@@ -247,14 +247,36 @@ public class Imposter extends Agent {
 						myPosition = killable.get(name);
 						
 						// CALL EMERGENCY
-						if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-							callReactor();
-						} else {
-							callOxygen();
+						if(!bb.getEmergencyCalling()){
+							if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+								callReactor();
+							} else {
+								callOxygen();
+							}
 						}
 					}
+					
+				} else if(killable.size() > 1 && callLigths() && killCooldownCounter == 0) {
+					bb.setCrewmateVision(1);
+					
+					// could also verify every single killable
+					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
+					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
+					
+					if(crewmatesSee.isEmpty()) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("YouAreDead");
+						msg.addReceiver(new AID(name,AID.ISLOCALNAME));
+						send(msg);
+						myPosition = killable.get(name);
+					}
+					
+				}	else if(!imposterVision.isEmpty() && crewmateVision.isEmpty() && killCooldownCounter == 0) {
+					// could also verify every single killable
+					String name = imposterVision.keySet().toArray(new String[killable.keySet().size()])[0];					
+					myPosition = DistanceUtils.nextMove(myPosition, bb.getPlayerPosition(name));
+					
 				}
-				
 				// MOVEMENT
 				else if(!tasks.isEmpty()) {					
 					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
@@ -294,28 +316,34 @@ public class Imposter extends Agent {
 
 		
 
-		private void callReactor() {
+		private boolean callReactor() {
+			if(bb.getEmergencyCalling()) return false;
 			bb.setEmergencyCalling(true);
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			msg.setContent("ReactorSabotage");				
 			msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));				
 			send(msg);			
+			return true;
 		}
 		
-		private void callLigths() {
+		private boolean callLigths() {
+			if(bb.getEmergencyCalling()) return false;
 			bb.setEmergencyCalling(true);
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			msg.setContent("LigthsSabotage");				
 			msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));				
 			send(msg);			
+			return true;
 		}
 		
-		private void callOxygen() {		
+		private boolean callOxygen() {		
+			if(bb.getEmergencyCalling()) return false;
 			bb.setEmergencyCalling(true);
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			msg.setContent("OxygenSabotage");				
 			msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));				
 			send(msg);
+			return true;
 		}
 
 		public int onEnd() {

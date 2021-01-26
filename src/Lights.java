@@ -88,6 +88,7 @@ public class Lights extends Agent {
 						send(msg);
 						sabotagem = false;
 						bb.setEmergencyCalling(false);
+						bb.setCrewmateVision(bb.CREWMATE_VISION);
 						
 					}
 				}	

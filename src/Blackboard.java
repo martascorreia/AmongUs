@@ -15,6 +15,7 @@ public class Blackboard {
 	private int numOfPlayers;
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
+	public final int CREWMATE_VISION = 2;
 	private boolean emergencyCalling;
 	private int imposterVision = 4;
 	private int crewmateVision = 2;
@@ -156,11 +157,15 @@ public class Blackboard {
 	}
 	
 	public void setPlayerAsDead(String key, int x, int y) {
-		deadPlayers.put(key, new Position (x, y));
 		alivePlayers.remove(key);
+		deadPlayers.put(key, new Position (x, y));
 	}
 	
 	public int getDistanceKill() {
 		return imposterKillDistance;
+	}
+	
+	public void setCrewmateVision(int vision) {
+		this.crewmateVision = vision;
 	}
 }
