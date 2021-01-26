@@ -164,7 +164,7 @@ public class Crewmate extends Agent {
 					states.replace("oxygen", false);
 					
 				// Meeting
-				}else if(msg.equals("StartMeeting")) {					
+				}else if(msg.equals("Meeting")) {					
 					states.replace("meeting", true);
 					states.replace("playing", false);
 					states.replace("task", false);
@@ -179,7 +179,7 @@ public class Crewmate extends Agent {
 				}else if(msg.equals("YouAreDead")) {
 					states.replace("dead", true);
 					Position pos = bb.getAlivePlayersPositions().get(getLocalName());
-					bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
+					bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
 
 				}
 			}

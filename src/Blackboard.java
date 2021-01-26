@@ -7,6 +7,7 @@ public class Blackboard {
 
 	private Map<String, Position> alivePlayers;
 	private Map<String, Position> deadPlayers;
+	private Map<String, Position> corpses;
 	private Map<String, Position> tasks;
 	private Map<String, Position> emergencies;
 	private List<String> imposters;
@@ -16,6 +17,8 @@ public class Blackboard {
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
 	public final int CREWMATE_VISION = 2;
+	public final int NUMBER_TASK = numOfCrewmates * 3;
+	public int tasksDone = 0;
 	private boolean emergencyCalling;
 	private int imposterVision = 4;
 	private int crewmateVision = 2;
@@ -142,23 +145,13 @@ public class Blackboard {
 		return this.emergencyCalling;
 	}
 	
-	// VISIONS
+	// DISTANCES
 	public int getImposterVision() {
 		return imposterVision;
 	}
 	
 	public int getCrewmateVision() {
 		return crewmateVision;
-	}
-	
-	// DEAD
-	public Map<String, Position> getDeadPlayerss(String key) {
-		return deadPlayers;
-	}
-	
-	public void setPlayerAsDead(String key, int x, int y) {
-		alivePlayers.remove(key);
-		deadPlayers.put(key, new Position (x, y));
 	}
 	
 	public int getDistanceKill() {
@@ -168,4 +161,33 @@ public class Blackboard {
 	public void setCrewmateVision(int vision) {
 		this.crewmateVision = vision;
 	}
+	
+	// DEAD
+	public Map<String, Position> getDeadPlayers() {
+		return deadPlayers;
+	}
+	
+	public void setPlayerAsDead(String key, int x, int y) {
+		alivePlayers.remove(key);
+		deadPlayers.put(key, new Position (x, y));
+	}
+	
+	// CORPSES
+	public Map<String, Position> getCorpsesPlayers() {
+		return deadPlayers;
+	}
+	
+	public void setPlayerAsCorpse(String key, int x, int y) {
+		alivePlayers.remove(key);
+		deadPlayers.put(key, new Position (x, y));
+	}
+	
+	public void incrementTaskDone() {
+		this.tasksDone++;
+	}
+	
+	public int getTasksDone() {
+		return tasksDone;
+	}
+	
 }

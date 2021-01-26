@@ -4,7 +4,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.ThreadedBehaviourFactory;
@@ -30,16 +32,6 @@ public class Game extends Agent {
 	
 	// Colors
 	public final String RESET = "\u001B[0m";
-	public final String BLACK = "\033[0;30m";  
-	public final String RED = "\033[0;91m";    
-    public final String GREEN = "\033[0;32m";   
-    public final String LIME = "\033[0;92m";  
-    public final String YELLOW = "\033[0;33m"; 
-    public final String BLUE = "\033[0;94m";   
-    public final String MAGENTA = "\033[0;95m";
-    public final String CYAN = "\033[0;96m";   
-    public final String WHITE = "\033[0;97m";  
-    public final String PURPLE = "\033[0;35m";  
 	
 	private int numOfImposters;
 	private int numOfCrewmates;
@@ -47,8 +39,32 @@ public class Game extends Agent {
 	private final int COLUMNS = 31;
 	private TypeOfPosition[] map;
 	private final Blackboard bb = Blackboard.getInstance();
+	private Map<String, Boolean> states; 
+	private Map<String, String> colors;
+	
+	protected void setup(){
+		states = new HashMap<>();
+		states.put("playing", true);
+		states.put("meeting", false);
+		states.put("reactor", false);
+		states.put("lights", false);
+		states.put("oxygen", false);
+		states.put("over", false);
+		states.put("dead", false);
+		states.put("task", false);
 		
-	protected void setup(){		
+		colors = new HashMap<>();
+		colors.put("RED", "\033[0;91m");
+		colors.put("BLACK", "\033[0;30m");
+		colors.put("GREEN", "\033[0;32m");
+		colors.put("LIME", "\033[0;92m");
+		colors.put("YELLOW", "\033[0;33m");
+		colors.put("BLUE", "\033[0;94m");
+		colors.put("MAGENTA", "\033[0;95m");
+		colors.put("CYAN", "\033[0;96m");
+		colors.put("WHITE", "\033[0;97m");
+		colors.put("PURPLE", "\033[0;35m");
+		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -107,14 +123,22 @@ public class Game extends Agent {
 	}	
 	
 	private void behaviours() {
-		// FSM BEHAVIOUR
-		FSMBehaviour game = new FSMBehaviour(this) {
-			private static final long serialVersionUID = 1L;
+		
+		
+		CyclicBehaviour tasks = new CyclicBehaviour() {
 
-			public int onEnd() {
-				myAgent.doDelete();
-				return super.onEnd();
+			@Override
+			public void action() {
+				if(bb.NUMBER_TASK == bb.getTasksDone()) {
+					states.replace("over", true);
+					states.replace("playing", true);
+					states.replace("meeting", false);
+					states.replace("reactor", false);
+					states.replace("lights", false);
+					states.replace("oxygen", false);
+				}
 			}
+			
 		};
 		
 		TickerBehaviour prints = new TickerBehaviour(this,1000) {
@@ -126,6 +150,16 @@ public class Game extends Agent {
 			}
 		};
 
+		// FSM BEHAVIOUR
+		FSMBehaviour game = new FSMBehaviour(this) {
+			private static final long serialVersionUID = 1L;
+
+			public int onEnd() {
+				myAgent.doDelete();
+				return super.onEnd();
+			}
+		};
+				
 		// Registers the states of the Game
 		game.registerFirstState(new Playing(), PLAYING);
 		game.registerState(new Meeting(), MEETING);
@@ -244,15 +278,24 @@ public class Game extends Agent {
 		int index = 0;
 		boolean isAgent;
 		
-		Map<String, Position> maps = bb.getAlivePlayersPositions();
-		Set<String> keys = maps.keySet();
-		Map<Integer, String> agentsPositions = new HashMap<>();
+		Map<String, Position> alivePlayers = bb.getAlivePlayersPositions();
+		Map<String, Position> corpses = bb.getCorpsesPlayers();
 		List<String> imposters = bb.getImposters();
 
+		Set<String> keys = alivePlayers.keySet();
+		Map<Integer, String> agentsPositions = new HashMap<>();
 		for(String key : keys) {
-			Position pos = maps.get(key);
+			Position pos = alivePlayers.get(key);
 			int ind = pos.getX() + pos.getY() * COLUMNS;
 			agentsPositions.put(ind, key);
+		}
+		
+		Set<String> keysC = corpses.keySet();
+		Map<Integer, String> corpsesPositions = new HashMap<>();
+		for(String key : keysC) {
+			Position pos = corpses.get(key);
+			int ind = pos.getX() + pos.getY() * COLUMNS;
+			corpsesPositions.put(ind, key);
 		}
 				
 		for(int x = 0; x < LINES * COLUMNS; x++, j++) {
@@ -275,36 +318,15 @@ public class Game extends Agent {
 				if(imposters.contains(key)) symbol = "I";
 				else symbol = "C";
 					
-				if(key.equals(Colors.RED.toString())) {
-					System.out.print(RED + symbol + RESET);
-										
-				} else if(key.equals(Colors.BLUE.toString())) {
-					System.out.print(BLUE + symbol + RESET);
+				System.out.print(colors.get(key) + symbol + RESET);
+			}
+			
+			if(corpsesPositions.containsKey(index)) {
+				String key = corpsesPositions.get(index);
+				isAgent = true;
+				symbol = "B";
 				
-				} else if(key.equals(Colors.YELLOW.toString())) {
-					System.out.print(YELLOW + symbol + RESET);
-					
-				} else if(key.equals(Colors.GREEN.toString())) {
-					System.out.print(GREEN + symbol + RESET);
-				
-				} else if(key.equals(Colors.LIME.toString())) {
-					System.out.print(LIME + symbol + RESET);
-					
-				} else if(key.equals(Colors.PURPLE.toString())) {
-					System.out.print(PURPLE + symbol +RESET);
-					
-				} else if(key.equals(Colors.BLACK.toString())) {
-					System.out.print(BLACK + symbol + RESET);
-					
-				} else if(key.equals(Colors.WHITE.toString())) {
-					System.out.print(WHITE + symbol + RESET);
-					
-				} else if(key.equals(Colors.CYAN.toString())) {
-					System.out.print(CYAN + symbol + RESET);
-					
-				} else if(key.equals(Colors.MAGENTA.toString())) {
-					System.out.print(MAGENTA + symbol + RESET);
-				}
+				System.out.print(colors.get(key) + symbol + RESET);
 			}
 			
 			if(map[index] == TypeOfPosition.VENT && !isAgent){
@@ -395,7 +417,7 @@ public class Game extends Agent {
 
 		@Override
 		public void action() {
-			while(true) {
+			if(states.get("playing")) {
 				ACLMessage msg = myAgent.receive();
 
 				if(msg != null) {
@@ -404,15 +426,38 @@ public class Game extends Agent {
 					if(message[0].equals("Body") ) { // Body YELLOW
 						System.out.println(msg.getSender() + " found " + message[1] + "'s body.");	
 						endValue = 1;
-						break;
+						
+						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
+						sendMsg.setContent("Meeting");
+						List<String> players = bb.getAllAlivePlayers();
+						for(String player : players) {
+							sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
+						}						
+						send(sendMsg);
 						
 					} else if(message[0].equals("Meeting")) { // Meeting
 						System.out.println(msg.getSender() + " called a meeting.");	
 						endValue = 1;
-						break;
-					}		
+						
+						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
+						sendMsg.setContent("Meeting");
+						List<String> players = bb.getAllAlivePlayers();
+						for(String player : players) {
+							sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
+						}						
+						send(sendMsg);
+						
+					} else {
+						endValue = 0;
+					}
 				}
-			}		
+				
+			} else if(states.get("over")) {
+				endValue = 3;
+			
+			}else {
+				endValue = 2;
+			}
 		}	
 		
 		public int onEnd() {

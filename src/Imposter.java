@@ -196,7 +196,7 @@ public class Imposter extends Agent {
 					states.replace("oxygen", false);
 					
 				// Meeting
-				}else if(msg.equals("StartMeeting")) {					
+				}else if(msg.equals("Meeting")) {					
 					states.replace("meeting", true);
 					states.replace("playing", false);
 					states.replace("task", false);
@@ -311,39 +311,9 @@ public class Imposter extends Agent {
 			}else {
 				endValue = 2;
 			}
+
 			
-		}	
-
-		
-
-		private boolean callReactor() {
-			if(bb.getEmergencyCalling()) return false;
-			bb.setEmergencyCalling(true);
-			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			msg.setContent("ReactorSabotage");				
-			msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));				
-			send(msg);			
-			return true;
-		}
-		
-		private boolean callLigths() {
-			if(bb.getEmergencyCalling()) return false;
-			bb.setEmergencyCalling(true);
-			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			msg.setContent("LigthsSabotage");				
-			msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));				
-			send(msg);			
-			return true;
-		}
-		
-		private boolean callOxygen() {		
-			if(bb.getEmergencyCalling()) return false;
-			bb.setEmergencyCalling(true);
-			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			msg.setContent("OxygenSabotage");				
-			msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));				
-			send(msg);
-			return true;
+			
 		}
 
 		public int onEnd() {
@@ -398,75 +368,7 @@ public class Imposter extends Agent {
 
 		@Override
 		public void action() {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-			}
-			 
-			if(states.get("dead")) {
-				endValue = 1;
-				
-			} else if(states.get("reactor")) {
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("REACTOR");
-
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent("ReactorFix");
-					msg.addReceiver(new AID("REACTOR", AID.ISLOCALNAME));
-					send(msg);
-
-				}else {
-					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				endValue = 0;
-			} else if(states.get("lights")) {
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("LIGHTS");
-				
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent("LightsFix");
-					msg.addReceiver(new AID("LIGHTS", AID.ISLOCALNAME));
-					send(msg);
-
-				}else {
-					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				endValue = 0;
-			} else if(states.get("oxygen")){
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("O2");
-				
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent("O2Fix");
-					msg.addReceiver(new AID("O2", AID.ISLOCALNAME));
-					send(msg);
-					
-				}else {
-					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				endValue = 0;		
-				
-			}else if(states.get("over")) {
-				endValue = 3;
-				
-			}else if(states.get("playing")){
-				endValue = 1;
-				
-			}else {
-				endValue = 2;
-			}
+			
 		}		
 
 		public int onEnd() {
@@ -480,7 +382,80 @@ public class Imposter extends Agent {
 
 
 		public void action() {
-			
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+			 
+			if(states.get("dead")) {
+				endValue = 0;
+				
+			} else if(bb.getEmergencyCalling()) {
+				
+				Position myPosition = bb.getPlayerPosition(getLocalName());				
+				
+				Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayersPositions());
+				Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
+				Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
+				
+				if(killable.size() == 1 && killCooldownCounter == 0) {
+					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
+					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
+					
+					if(crewmatesSee.isEmpty()) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("YouAreDead");
+						msg.addReceiver(new AID(name,AID.ISLOCALNAME));
+						send(msg);
+						myPosition = killable.get(name);
+					}
+				
+				} else if(!imposterVision.isEmpty() && crewmateVision.isEmpty() && killCooldownCounter == 0) {
+					// could also verify every single killable
+					String name = imposterVision.keySet().toArray(new String[killable.keySet().size()])[0];					
+					myPosition = DistanceUtils.nextMove(myPosition, bb.getPlayerPosition(name));
+					
+				}
+				
+				// MOVEMENT
+				else {					
+					String emergency = "";
+					String content = "";
+					
+					if(states.get("reactor")) {
+						emergency = "REACTOR";
+						content = "ReactorFix";
+					} else if(states.get("oxygen")) {
+						emergency = "OXYGEN";
+						content = "OxygenFix";
+					} else {
+						emergency = "LIGHTS";
+						content = "LightsFix";
+					}
+					
+					if(DistanceUtils.manDistance(myPosition, bb.getEmergencyPosition(emergency)) == 0) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent(content);
+						msg.addReceiver(new AID(emergency, AID.ISLOCALNAME));
+						send(msg);
+
+					} else {
+						endValue = 0;
+						myPosition = DistanceUtils.nextMove(myPosition, bb.getEmergencyPosition(emergency));
+					}	
+				}
+				
+				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				
+			}else if(states.get("playing")) {
+				endValue = 1;
+				
+			}else if(states.get("over")) {
+				endValue = 3;
+				
+			} else {
+				endValue = 2;
+			}
 		}		
 
 		public int onEnd() {
@@ -497,5 +472,35 @@ public class Imposter extends Agent {
 			System.out.println("Agent "+ getLocalName()+ "stopped");
 		}	 
 	}	
+	
+	private boolean callReactor() {
+		if(bb.getEmergencyCalling()) return false;
+		bb.setEmergencyCalling(true);
+		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+		msg.setContent("ReactorSabotage");				
+		msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));				
+		send(msg);			
+		return true;
+	}
+	
+	private boolean callLigths() {
+		if(bb.getEmergencyCalling()) return false;
+		bb.setEmergencyCalling(true);
+		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+		msg.setContent("LigthsSabotage");				
+		msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));				
+		send(msg);			
+		return true;
+	}
+	
+	private boolean callOxygen() {		
+		if(bb.getEmergencyCalling()) return false;
+		bb.setEmergencyCalling(true);
+		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+		msg.setContent("OxygenSabotage");				
+		msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));				
+		send(msg);
+		return true;
+	}
 
 }
