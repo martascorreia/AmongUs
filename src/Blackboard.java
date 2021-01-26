@@ -7,7 +7,8 @@ import jade.core.Agent;
 
 public class Blackboard {
 
-	private Map<String, Position> positions;
+	private Map<String, Position> players;
+	private Map<String, Position> tasks;
 	private List<String> imposters;
 	private int numOfImposters;
 	private int numOfCrewmates;
@@ -20,7 +21,8 @@ public class Blackboard {
 	private static Blackboard blackboard;
 	
 	private Blackboard() {
-		this.positions = new HashMap<>();
+		this.players = new HashMap<>();
+		this.tasks = new HashMap<>();
 		this.imposters = new ArrayList<>();
 	}
 	
@@ -29,17 +31,20 @@ public class Blackboard {
 		return blackboard;
 	}
 	
-	public Position getPosition(String key) {
-		return positions.get(key);
+	public Position getPlayerPosition(String key) {
+		return players.get(key);
 	}
 	
-	public Position setPosition(String key, int x, int y) {
-		if(positions.containsKey(key)) positions.remove(key);
-		return positions.put(key, new Position(x, y));
+	public Position setPlayerPosition(String key, int x, int y) {
+		if(players.containsKey(key)) players.remove(key);
+		return players.put(key, new Position(x, y));
+
 	}
 	
-	public Map<String, Position> getPositions(){
-		return positions;
+	public Map<String, Position> getPlayersPositions(){
+		Map<String, Position> newMap = new HashMap<>();
+		newMap.putAll(players);
+		return newMap;
 	}
 	
 	public TypeOfPosition[] getMap() {
@@ -48,6 +53,14 @@ public class Blackboard {
 
 	public void setMap(TypeOfPosition[] map) {
 		this.map = map;		
+	}
+	
+	public Position getTaskPosition(String key) {
+		return tasks.get(key);
+	}
+	
+	public void setTaskPosition(String key, Position value) {
+		tasks.put(key, value);
 	}
 	
 	public void setNum(int numOfPlayers, int numOfImposters) {
@@ -78,7 +91,7 @@ public class Blackboard {
 	
 	public List<String> getAllPlayers() {
 		List<String> result = new ArrayList<String>();
-		for(String agent: positions.keySet()) {
+		for(String agent: players.keySet()) {
 			result.add(agent);
 		}
 		
@@ -86,11 +99,11 @@ public class Blackboard {
 	}
 	
 	public int getCollums() {
-		return this.COLUMNS;
+		return COLUMNS;
 	}
 	
 	public int getLines() {
-		return this.LINES;
+		return LINES;
 	}
 	
 }

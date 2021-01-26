@@ -156,22 +156,22 @@ public class Game extends Agent {
 	private void createMap() {
 		this.map = new TypeOfPosition[LINES * COLUMNS];
 		
-		int j = 0;
-		int i = 0;
+		int x = 0;
+		int y = 0;
 		Integer index = 0;
 		
-		for(int x = 0; x < LINES * COLUMNS; x++, j++) {
-			if(j == COLUMNS) {
-				i++;
-				j = 0;
+		for(int i = 0; i < LINES * COLUMNS; i++, x++) {
+			if(x == COLUMNS) {
+				y++;
+				x = 0;
 			}
 						
-			index = j + i * COLUMNS;
+			index = x + y * COLUMNS;
 					
 			if(index == 78 || index == 96 || index == 196 || index == 204 || index == 251 || index == 256 || index == 272 || index == 313 || index == 328) {
 				map[index] = TypeOfPosition.VENT;
 				
-			} else if(i == 0 || i == 13 || j == 0 || j == 30) {
+			} else if(y == 0 || y == 13 || x == 0 || x == 30) {
 				map[index] = TypeOfPosition.WALL;
 				
 			} else if(index == 157) {
@@ -185,36 +185,47 @@ public class Game extends Agent {
 				
 			} else if(index == 34) {
 				map[index] = TypeOfPosition.FILLGAS;
-				
+				bb.setTaskPosition(TypeOfPosition.FILLGAS.toString(), new Position(x, y));
+				 
 			} else if(index == 375) {
-				map[index] = TypeOfPosition.FILLGAS;
+				map[index] = TypeOfPosition.LEAVES;
+				bb.setTaskPosition(TypeOfPosition.LEAVES.toString(), new Position(x, y));
 			
 			} else if(index == 259) {
-				map[index] = TypeOfPosition.WIRES;
+				map[index] = TypeOfPosition.WIRES1;
+				bb.setTaskPosition(TypeOfPosition.WIRES1.toString(), new Position(x, y));
 				
 			} else if(index == 198) {
 				map[index] = TypeOfPosition.MEDBAY;
+				bb.setTaskPosition(TypeOfPosition.MEDBAY.toString(), new Position(x, y));
 				
 			} else if(index == 387) {
 				map[index] = TypeOfPosition.TRASH;
+				bb.setTaskPosition(TypeOfPosition.TRASH.toString(), new Position(x, y));
 			
 			} else if(index == 50) {
 				map[index] = TypeOfPosition.DOWNLOAD;
+				bb.setTaskPosition(TypeOfPosition.DOWNLOAD.toString(), new Position(x, y));
 			
 			} else if(index == 85) {
 				map[index] = TypeOfPosition.ASTEROIDS;
+				bb.setTaskPosition(TypeOfPosition.ASTEROIDS.toString(), new Position(x, y));
 			
 			} else if(index == 267) {
 				map[index] = TypeOfPosition.UPLOAD;
+				bb.setTaskPosition(TypeOfPosition.UPLOAD.toString(), new Position(x, y));
 				
 			} else if(index == 300) {
 				map[index] = TypeOfPosition.CARDSWIPE;
+				bb.setTaskPosition(TypeOfPosition.CARDSWIPE.toString(), new Position(x, y));
 				
 			} else if(index == 397) {
 				map[index] = TypeOfPosition.SHIELDS;
+				bb.setTaskPosition(TypeOfPosition.SHIELDS.toString(), new Position(x, y));
 				
 			} else if(index == 215) {
-				map[index] = TypeOfPosition.WIRES;
+				map[index] = TypeOfPosition.WIRES2;
+				bb.setTaskPosition(TypeOfPosition.WIRES2.toString(), new Position(x, y));
 				
 			} else {
 				map[index] = TypeOfPosition.NORMAL;
@@ -230,11 +241,10 @@ public class Game extends Agent {
 		int index = 0;
 		boolean isAgent;
 		
-		Map<String, Position> maps = bb.getPositions();
+		Map<String, Position> maps = bb.getPlayersPositions();
 		Set<String> keys = maps.keySet();
 		Map<Integer, String> agentsPositions = new HashMap<>();
 		List<String> imposters = bb.getImposters();
-		
 
 		for(String key : keys) {
 			Position pos = maps.get(key);
@@ -300,8 +310,8 @@ public class Game extends Agent {
 			} else if((map[index] == TypeOfPosition.SHIELDS || map[index] == TypeOfPosition.FILLGAS 
 					|| map[index] == TypeOfPosition.CARDSWIPE || map[index] == TypeOfPosition.ASTEROIDS
 					|| map[index] == TypeOfPosition.DOWNLOAD || map[index] == TypeOfPosition.UPLOAD
-					|| map[index] == TypeOfPosition.TRASH || map[index] == TypeOfPosition.WIRES 
-					|| map[index] == TypeOfPosition.MEDBAY) && !isAgent){
+					|| map[index] == TypeOfPosition.TRASH || map[index] == TypeOfPosition.WIRES1 
+					|| map[index] == TypeOfPosition.WIRES2 || map[index] == TypeOfPosition.MEDBAY) && !isAgent){
 				System.out.print("T");
 			} else if(map[index] == TypeOfPosition.WALL && !isAgent) {
 				System.out.print("|");
@@ -319,38 +329,35 @@ public class Game extends Agent {
 		System.out.println();
 	}
 	
-
 	private void createAgents() {		
-		Colors[] types = Colors.values();
+		Colors[] colors = Colors.values();
 		TypeOfPosition[] tasks = TypeOfPosition.values();
-		int type = 0;
+		int indexColor = 0;
 		
 		AgentContainer c = getContainerController();
 		Random random = new Random();
 		
-		for(int i = 0; i < numOfCrewmates; i++, type++) {			
+		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {			
 			try {
-				Colors typeOfPosition = types[type];				
-				Object args[] = new Object[3];
+				Object args[] = new Object[1];
 				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
 				
-				AgentController crew = c.createNewAgent(typeOfPosition.toString(), "Crewmate", args);
+				Colors name = colors[indexColor];				
+				bb.setPlayerPosition(name.toString(), 11, 5);
+				AgentController crew = c.createNewAgent(name.toString(), "Crewmate", args);
 				crew.start();
-				bb.setPosition(typeOfPosition.toString(), 11, 5);
 			} catch (StaleProxyException e) {
 				System.out.println("Error while creating a Crewmate.");
 			}
 		}
 		
-		for(int i = 0; i < numOfImposters; i++, type++) {
+		for(int i = 0; i < numOfImposters; i++, indexColor++) {
 			try {
-				Colors typeOfPosition = types[type];
-				AgentController imp = c.createNewAgent(typeOfPosition.toString(), "Imposter", null);
+				Colors name = colors[indexColor];
+				bb.setPlayerPosition(name.toString(), 11, 4);
+				bb.setImposters(name.toString());
+				AgentController imp = c.createNewAgent(name.toString(), "Imposter", null);
 				imp.start();
-				bb.setPosition(typeOfPosition.toString(), 11, 4);
-				bb.setImposters(typeOfPosition.toString());
 			} catch (StaleProxyException e) {
 				System.out.println("Error while creating an Imposter.");
 			}

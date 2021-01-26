@@ -1,5 +1,3 @@
-/Game$howMap.class
-/Game$ShowMap.class
 /Game$1.class
 /Game$2.class
 /Game$Emergency.class
@@ -26,3 +24,8 @@
 /Crewmate$DoingTask.class
 /Emergency.class
 /Meeting.class
+/Imposter.class
+/Position.class
+/Blackboard.class
+/Colors.class
+/TypeOfPosition.class

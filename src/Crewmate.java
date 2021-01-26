@@ -1,5 +1,8 @@
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
@@ -25,28 +28,24 @@ public class Crewmate extends Agent {
 	private final String DOINGTASK = "DoingTask";
 	private static final String OVER = "Over"; 
 
-	private List<Position> myTasks;
-	private boolean statePlaying;
-	private boolean stateMeeting;
-	private boolean stateEmergencyReactor;
-	private boolean stateEmergencyLights;
-	private boolean stateEmergencyOxygen;
-	private boolean stateOver;
-	private boolean stateDead;
-	private boolean stateTask;
+	private List<Position> tasks;
+	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
 	
-	// I Saw collor at x,y with collor
 	protected void setup(){
 
-		statePlaying = true;
-		stateMeeting = false;
-		stateEmergencyReactor = false;
-		stateEmergencyLights = false;
-		stateEmergencyOxygen = false;
-		stateOver = false;
-		stateDead=false;
-		stateTask=false;
+		states = new HashMap<>();
+		states.put("playing", true);
+		states.put("meeting", false);
+		states.put("reactor", false);
+		states.put("lights", false);
+		states.put("oxygen", false);
+		states.put("over", false);
+		states.put("dead", false);
+		states.put("task", false);
+		
+		tasks = new ArrayList<>();
+		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -62,10 +61,13 @@ public class Crewmate extends Agent {
 			return;
 		}
 		
+		// TASKS
 		Object[] args= getArguments();
 		for(Object p : args) {
-			myTasks.add(bb.getPosition((String) p));
+			tasks.add(bb.getTaskPosition(p.toString()));
 		}
+		
+		// FSM
 		FSMBehaviour game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
 
@@ -74,6 +76,7 @@ public class Crewmate extends Agent {
 				return super.onEnd();
 			}
 		};
+		
 		// Registers the states of the Agent
 		game.registerFirstState(new Playing(this,1000), PLAYING);
 		game.registerState(new DoingTask(this,1000),DOINGTASK);
@@ -95,9 +98,11 @@ public class Crewmate extends Agent {
 		game.registerTransition(DOINGTASK, MEETING,2);
 		game.registerTransition(DOINGTASK, EMERGENCY,3);
 		game.registerTransition(DOINGTASK, OVER,4);
+		
 		// MEETING
-		game.registerTransition(MEETING, PLAYING, 0);
-		game.registerTransition(MEETING, OVER, 1);
+		game.registerTransition(MEETING, MEETING, 0);
+		game.registerTransition(MEETING, PLAYING, 1);
+		game.registerTransition(MEETING, OVER, 2);
 
 		// EMERGENCY
 		game.registerTransition(EMERGENCY, EMERGENCY, 0);
@@ -114,60 +119,74 @@ public class Crewmate extends Agent {
 
 	public class Interaction extends CyclicBehaviour{
 
+		private static final long serialVersionUID = 1L;
+
 		@Override
 		public void action() {
 			ACLMessage rec = null;
 			rec=receive();
-			if(rec!=null) {
-				
+			
+			if(rec!=null) {				
 				String msg = rec.getContent();
+				
+				// REACTOR
 				if(msg.equals("ReactorProblem")) {
-					stateEmergencyReactor = true;	
-					stateTask=false;
-					statePlaying = false;
+					states.replace("reactor", true);
+					states.replace("task", false);
+					states.replace("playing", false);
 				}else if(msg.equals("ReactorFixed")) {
-					statePlaying = true;
-					stateEmergencyReactor = false;
+					states.replace("playing", true);
+					states.replace("reactor", false);
+					
+				// LIGHTS
 				}else if(msg.equals("LightsProblem")) {
-					stateEmergencyLights = true;	
-					stateTask=false;
-					statePlaying = false;
-									
+					states.replace("lights", true);
+					states.replace("task", false);
+					states.replace("playing", false);									
 				}else if(msg.equals("LightsFixed")) {
-					statePlaying = true;
-					stateEmergencyLights = false;
+					states.replace("playing", true);
+					states.replace("lights", false);
+					
+				// Oxygen
 				}else if(msg.equals("OxygenProblem")) {
-					stateEmergencyOxygen = true;	
-					stateTask=false;
-					statePlaying = false;		
+					states.replace("oxygen", true);
+					states.replace("task", false);
+					states.replace("playing", false);	
 				}else if(msg.equals("OxygenFixed")) {
-					statePlaying = true;
-					stateEmergencyOxygen = false;
-				}else if(msg.equals("GameOver")) {
-					stateOver = true;
-					stateTask=false;
-					statePlaying = false;
-					stateMeeting = false;
-					stateEmergencyReactor = false;
-					stateEmergencyLights = false;
-					stateEmergencyOxygen = false;
-				}else if(msg.equals("StartMeeting")) {
-					stateMeeting=true;
-					statePlaying = false;
-					stateTask=false;
-					stateEmergencyReactor = false;
-					stateEmergencyLights = false;
-					stateEmergencyOxygen = false;
+					states.replace("playing", true);
+					states.replace("oxygen", false);
+					
+				// Game Over
+				}else if(msg.equals("GameOver")) {		
+					states.replace("over", true);
+					states.replace("playing", false);
+					states.replace("task", false);
+					states.replace("meeting", false);
+					states.replace("reactor", false);
+					states.replace("lights", false);
+					states.replace("oxygen", false);
+					
+				// Meeting
+				}else if(msg.equals("StartMeeting")) {					
+					states.replace("meeting", true);
+					states.replace("playing", false);
+					states.replace("task", false);
+					states.replace("reactor", false);
+					states.replace("lights", false);
+					states.replace("oxygen", false);
 				}else if(msg.equals("EndMeeting")) {
-					statePlaying = true;
-					stateMeeting= false;
+					states.replace("playing", true);
+					states.replace("meeting", false);
+
+				// Dead
 				}else if(msg.equals("YouAreDead")) {
-					stateDead=true;
+					states.replace("dead", true);
+
 				}
 			}
 		}
-
 	}
+	
 	public class Playing extends TickerBehaviour {
 
 		private static final long serialVersionUID = 1L;
@@ -175,37 +194,41 @@ public class Crewmate extends Agent {
 
 		public Playing(Agent a, long period) {
 			super(a, period);
-			// TODO Auto-generated constructor stub
 		}
 
 		@Override
 		public void onTick() {
-			if(statePlaying) {
-				Position myPosition = bb.getPosition(getLocalName());
+			if(states.get("playing")) {
+				Position myPosition = bb.getPlayerPosition(getLocalName());
+				endValue = 0;
 				
-				//Getting info
+				// INFO
 				
-				
-				//MOVEMENT
-				if(!myTasks.isEmpty()) {
-					Position closestTask = DistanceUtils.closestTask(myPosition, myTasks);
+				// MOVEMENT
+				if(!tasks.isEmpty()) {					
+					Position closestTask = DistanceUtils.closestTask(myPosition, tasks);					
 					if(DistanceUtils.manDistance(myPosition, closestTask) == 0) {
 						doingTaskCounter=3;
 						endValue=3;
 					}else {
-						myPosition = DistanceUtils.closestMove(myPosition, closestTask);
+						myPosition = DistanceUtils.nextMove(myPosition, closestTask);
 					}
+					
 				}else {
 					myPosition = DistanceUtils.randomMove(myPosition);
 				}
-				bb.setPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				endValue = 0;
-			}else if(stateMeeting) {
+				
+				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				
+			}else if(states.get("meeting")) {
 				endValue = 1;
-			}else if(stateOver) {
+				
+			}else if(states.get("over")) {
 				endValue = 4;
-			}else if(stateTask){
+				
+			}else if(states.get("task")){
 				endValue = 3;
+				
 			}else {
 				endValue = 2;
 			}
@@ -229,30 +252,33 @@ public class Crewmate extends Agent {
 		@Override
 		protected void onTick() {
 			
-			if(stateTask) {
-				doingTaskCounter -= 1;
+			if(states.get("task")) {
+				doingTaskCounter--;
+				endValue = 0;
+				
 				if(doingTaskCounter == 0) {
-					stateTask=false;
-					statePlaying=true;
-					Position doingTask = DistanceUtils.closestTask(bb.getPosition(getLocalName()),myTasks);
-					myTasks.remove(myTasks.indexOf(doingTask));
+					states.replace("task", false);
+					states.replace("playing", true);
+					
+					Position task = DistanceUtils.closestTask(bb.getPlayerPosition(getLocalName()),tasks);
+					tasks.remove(tasks.indexOf(task));
 					endValue=1;
-				}else {
-					endValue = 0;
 				}
 				
-			}else if(stateMeeting) {
+			}else if(states.get("meeting")) {
 				endValue = 2;
-			}else if(stateOver) {
+				
+			}else if(states.get("over")) {
 				endValue = 4;
+				
 			}else {
 				endValue = 3;
 			}
 		}
+		
 		public int onEnd() {
 			return endValue;
-		}
-		
+		}		
 	}
 
 
@@ -262,9 +288,20 @@ public class Crewmate extends Agent {
 
 		@Override
 		public void action() {
-			if(!stateDead) {
+			
+			if(states.get("meeting")) {
+				endValue = 0;
+				if(!states.get("dead")) {
+					// talks
 				
-			}
+				}
+			
+			} else if(states.get("playing")) {
+				endValue = 1;
+				
+			} else {
+				endValue = 2;
+			}		
 		}	
 
 		public int onEnd() {
@@ -283,17 +320,23 @@ public class Crewmate extends Agent {
 
 		@Override
 		public void onTick() {
-			if(stateDead) {
+			if(states.get("dead")) {
 				endValue = 1;
-			}else if(stateEmergencyReactor) {
+				
+			}else if(states.get("reactor")) {
+				// go to reactor
 				endValue = 0;
-			}else if(stateEmergencyLights) {
+			}else if(states.get("lights")) {
+				// go to lights
 				endValue = 0;
-			}else if(stateEmergencyOxygen){
+			}else if(states.get("oxygen")){
+				// go to oxygen
 				endValue = 0;
-			}else if(stateOver) {
+				
+			}else if(states.get("over")) {
 				endValue = 3;
-			}else if(statePlaying){
+				
+			}else if(states.get("playing")){
 				endValue = 1;
 			}else {
 				endValue = 2;
@@ -311,12 +354,7 @@ public class Crewmate extends Agent {
 
 		@Override
 		public void action() {
-			System.out.println("Agent " +getLocalName()+ "stopped");
+			System.out.println("Agent "+ getLocalName()+ "stopped");
 		}	 
-	}
-
-
-	
-	// METODOS AUXILIARES
-	
+	}	
 }
