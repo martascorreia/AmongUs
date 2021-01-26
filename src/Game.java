@@ -7,7 +7,6 @@ import java.util.Set;
 import jade.core.Agent;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
-import jade.core.behaviours.ParallelBehaviour;
 import jade.core.behaviours.ThreadedBehaviourFactory;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
@@ -103,11 +102,11 @@ public class Game extends Agent {
 		
 		createMap();
 		createAgents();
-		createBehaviour();
+		behaviours();
 		
 	}	
 	
-	private void createBehaviour() {
+	private void behaviours() {
 		// FSM BEHAVIOUR
 		FSMBehaviour game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
@@ -151,8 +150,7 @@ public class Game extends Agent {
 		
 		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
         addBehaviour(tbf.wrap(game));
-        addBehaviour(tbf.wrap(prints));
-	
+        addBehaviour(tbf.wrap(prints));	
 	}
 
 	private void createMap() {
@@ -178,12 +176,15 @@ public class Game extends Agent {
 				
 			} else if(index == 157) {
 				map[index] = TypeOfPosition.REACTOR;
+				bb.setEmergencyPosition(TypeOfPosition.REACTOR.toString(), new Position(x, y));
 
 			} else if(index == 320) {
 				map[index] = TypeOfPosition.LIGHTS;
+				bb.setEmergencyPosition(TypeOfPosition.LIGHTS.toString(), new Position(x, y));
 			
 			} else if(index == 177) {
 				map[index] = TypeOfPosition.O2;
+				bb.setEmergencyPosition(TypeOfPosition.O2.toString(), new Position(x, y));
 				
 			} else if(index == 34) {
 				map[index] = TypeOfPosition.FILLGAS;
@@ -341,8 +342,10 @@ public class Game extends Agent {
 		
 		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {			
 			try {
-				Object args[] = new Object[1];
+				Object args[] = new Object[3];
 				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
 				
 				Colors name = colors[indexColor];				
 				bb.setPlayerPosition(name.toString(), 11, 5);

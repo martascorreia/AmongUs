@@ -5,7 +5,6 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.ThreadedBehaviourFactory;
-import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -74,10 +73,10 @@ public class Crewmate extends Agent {
 		};
 		
 		// Registers the states of the Agent
-		game.registerFirstState(new Playing(this,1000), PLAYING);
-		game.registerState(new DoingTask(this,1000),DOINGTASK);
+		game.registerFirstState(new Playing(), PLAYING);
+		game.registerState(new DoingTask(),DOINGTASK);
 		game.registerState(new Meeting(), MEETING);
-		game.registerState(new Emergency(this,1000),EMERGENCY);
+		game.registerState(new Emergency(),EMERGENCY);
 		game.registerLastState(new Over(), OVER);
 
 		// Registers the transitions	
@@ -120,9 +119,9 @@ public class Crewmate extends Agent {
 		@Override
 		public void action() {
 			ACLMessage rec = null;
-			rec=receive();
+			rec = receive();
 			
-			if(rec!=null) {				
+			if(rec != null) {				
 				String msg = rec.getContent();
 				
 				// REACTOR
@@ -183,17 +182,17 @@ public class Crewmate extends Agent {
 		}
 	}
 	
-	public class Playing extends TickerBehaviour {
+	public class Playing extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
-		public Playing(Agent a, long period) {
-			super(a, period);
-		}
-
-		@Override
-		public void onTick() {
+		public void action() {
+            try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+            
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				
@@ -240,17 +239,16 @@ public class Crewmate extends Agent {
 		}
 	}
 	
-	public class DoingTask extends TickerBehaviour{
+	public class DoingTask extends OneShotBehaviour{
 		
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 		
-		public DoingTask(Agent a, long period) {
-			super(a, period);
-		}
-
-		@Override
-		protected void onTick() {
+		public void action() {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
 			
 			if(states.get("task")) {
 				doingTaskCounter -= 1;
@@ -309,34 +307,69 @@ public class Crewmate extends Agent {
 		}
 	}
 
-	public class Emergency extends TickerBehaviour {
+	public class Emergency extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
-		public Emergency(Agent a, long period) {
-			super(a, period);
-		}
 
-		@Override
-		public void onTick() {
+		public void action() {
+			try {
+					Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+			 
 			if(states.get("dead")) {
 				endValue = 1;
 				
-			}else if(states.get("reactor")) {
-				// go to reactor
+			} else if(states.get("reactor")) {
+				Position myPosition = bb.getPlayerPosition(getLocalName());
+				Position emergency = bb.getEmergencyPosition("REACTOR");
+
+				if(DistanceUtils.manDistance(myPosition,emergency) == 0) {
+					// DOES REACTOR
+
+				}else {
+					endValue = 0;
+					myPosition = DistanceUtils.nextMove(myPosition, emergency);
+				}
+				
+				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
 				endValue = 0;
-			}else if(states.get("lights")) {
-				// go to lights
+			} else if(states.get("lights")) {
+				Position myPosition = bb.getPlayerPosition(getLocalName());
+				Position emergency = bb.getEmergencyPosition("LIGHTS");
+				
+				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
+					// DOES LIGTHS
+
+				}else {
+					endValue = 0;
+					myPosition = DistanceUtils.nextMove(myPosition, emergency);
+				}
+				
+				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
 				endValue = 0;
-			}else if(states.get("oxygen")){
-				// go to oxygen
-				endValue = 0;
+			} else if(states.get("oxygen")){
+				Position myPosition = bb.getPlayerPosition(getLocalName());
+				Position emergency = bb.getEmergencyPosition("O2");
+				
+				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
+					// DOES O2
+
+				}else {
+					endValue = 0;
+					myPosition = DistanceUtils.nextMove(myPosition, emergency);
+				}
+				
+				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				endValue = 0;		
 				
 			}else if(states.get("over")) {
 				endValue = 3;
 				
 			}else if(states.get("playing")){
 				endValue = 1;
+				
 			}else {
 				endValue = 2;
 			}
