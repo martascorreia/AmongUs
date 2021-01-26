@@ -123,20 +123,21 @@ public class Game extends Agent {
 	}	
 	
 	private void behaviours() {
-		
-		
 		CyclicBehaviour tasks = new CyclicBehaviour() {
+			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void action() {
-				if(bb.NUMBER_TASK == bb.getTasksDone()) {
+				/*if(bb.NUMBER_TASK == bb.getTasksDone()) {
 					states.replace("over", true);
-					states.replace("playing", true);
+					states.replace("playing", false);
 					states.replace("meeting", false);
 					states.replace("reactor", false);
 					states.replace("lights", false);
 					states.replace("oxygen", false);
-				}
+				}*/
+				
+				
 			}
 			
 		};
@@ -185,6 +186,8 @@ public class Game extends Agent {
 		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
         addBehaviour(tbf.wrap(game));
         addBehaviour(tbf.wrap(prints));	
+        addBehaviour(tbf.wrap(tasks));	
+
 	}
 
 	private void createMap() {
@@ -276,9 +279,11 @@ public class Game extends Agent {
 		int j = 0;
 		int i = 0;
 		int index = 0;
-		boolean isAgent;
+		boolean isAgent = false;
+		boolean isCorpse = false;
 		
-		Map<String, Position> alivePlayers = bb.getAlivePlayersPositions();
+		Map<String, Position> alivePlayers = bb.getAlivePlayers();
+		Map<String, Position> deadPlayers = bb.getDeadPlayers();
 		Map<String, Position> corpses = bb.getCorpsesPlayers();
 		List<String> imposters = bb.getImposters();
 
@@ -288,6 +293,14 @@ public class Game extends Agent {
 			Position pos = alivePlayers.get(key);
 			int ind = pos.getX() + pos.getY() * COLUMNS;
 			agentsPositions.put(ind, key);
+		}
+		
+		Set<String> keysD = deadPlayers.keySet();
+		Map<Integer, String> deadPositions= new HashMap<>();
+		for(String key : keysD) {
+			Position pos = deadPlayers.get(key);
+			int ind = pos.getX() + pos.getY() * COLUMNS;
+			deadPositions.put(ind, key);
 		}
 		
 		Set<String> keysC = corpses.keySet();
@@ -300,7 +313,6 @@ public class Game extends Agent {
 				
 		for(int x = 0; x < LINES * COLUMNS; x++, j++) {
 			isAgent = false;
-
 			if(j == COLUMNS) {
 				i++;
 				j = 0;
@@ -319,12 +331,21 @@ public class Game extends Agent {
 				else symbol = "C";
 					
 				System.out.print(colors.get(key) + symbol + RESET);
-			}
 			
-			if(corpsesPositions.containsKey(index)) {
+			} else if(corpsesPositions.containsKey(index)) {
 				String key = corpsesPositions.get(index);
 				isAgent = true;
+				isCorpse = true;
 				symbol = "B";
+				
+				System.out.print(colors.get(key) + symbol + RESET);
+				
+			} 
+			
+			if(deadPositions.containsKey(index) && !isCorpse) {
+				String key = deadPositions.get(index);
+				isAgent = true;
+				symbol = "G";
 				
 				System.out.print(colors.get(key) + symbol + RESET);
 			}

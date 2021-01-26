@@ -30,7 +30,6 @@ public class Crewmate extends Agent {
 	private int doingTaskCounter = 3;
 	
 	protected void setup(){
-
 		states = new HashMap<>();
 		states.put("playing", true);
 		states.put("meeting", false);
@@ -126,7 +125,7 @@ public class Crewmate extends Agent {
 			if(rec != null) {				
 				String msg = rec.getContent();
 				
-				// REACTOR
+				// Reactor
 				if(msg.equals("ReactorProblem")) {
 					states.replace("reactor", true);
 					states.replace("task", false);
@@ -135,7 +134,7 @@ public class Crewmate extends Agent {
 					states.replace("playing", true);
 					states.replace("reactor", false);
 					
-				// LIGHTS
+				// Lights
 				}else if(msg.equals("LightsProblem")) {
 					states.replace("lights", true);
 					states.replace("task", false);
@@ -178,8 +177,9 @@ public class Crewmate extends Agent {
 				// Dead
 				}else if(msg.equals("YouAreDead")) {
 					states.replace("dead", true);
-					Position pos = bb.getAlivePlayersPositions().get(getLocalName());
+					Position pos = bb.getAlivePlayers().get(getLocalName());
 					bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
+					bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
 
 				}
 			}
@@ -263,6 +263,7 @@ public class Crewmate extends Agent {
 					states.replace("playing", true);					
 					String task = DistanceUtils.closestTask(bb.getPlayerPosition(getLocalName()), tasks);
 					tasks.remove(task);
+					bb.incrementTaskDone();
 					endValue = 1;
 				} else {
 					endValue = 0;

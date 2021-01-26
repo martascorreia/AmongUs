@@ -11,18 +11,20 @@ public class Blackboard {
 	private Map<String, Position> tasks;
 	private Map<String, Position> emergencies;
 	private List<String> imposters;
+	
 	private int numOfImposters;
 	private int numOfCrewmates;
 	private int numOfPlayers;
+	
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
-	public final int CREWMATE_VISION = 2;
+	public int CREWMATE_VISION = 2;
+	public int IMPOSTER_VISION = 6;
 	public final int NUMBER_TASK = numOfCrewmates * 3;
+	
 	public int tasksDone = 0;
 	private boolean emergencyCalling;
-	private int imposterVision = 4;
-	private int crewmateVision = 2;
-	private int imposterKillDistance = 1;
+	private int imposterKillDistance = 2;
 
 	private TypeOfPosition[] map;
 	
@@ -31,6 +33,7 @@ public class Blackboard {
 	private Blackboard() {
 		this.alivePlayers = new HashMap<>();
 		this.deadPlayers = new HashMap<>();
+		this.corpses = new HashMap<>();
 		this.tasks = new HashMap<>();
 		this.emergencies = new HashMap<>();
 		this.imposters = new ArrayList<>();
@@ -58,7 +61,7 @@ public class Blackboard {
 		}		
 	}
 	
-	public Map<String, Position> getAlivePlayersPositions(){
+	public Map<String, Position> getAlivePlayers(){
 		Map<String, Position> newMap = new HashMap<>();
 		newMap.putAll(alivePlayers);
 		return newMap;
@@ -147,11 +150,11 @@ public class Blackboard {
 	
 	// DISTANCES
 	public int getImposterVision() {
-		return imposterVision;
+		return IMPOSTER_VISION;
 	}
 	
 	public int getCrewmateVision() {
-		return crewmateVision;
+		return CREWMATE_VISION;
 	}
 	
 	public int getDistanceKill() {
@@ -159,7 +162,7 @@ public class Blackboard {
 	}
 	
 	public void setCrewmateVision(int vision) {
-		this.crewmateVision = vision;
+		CREWMATE_VISION = vision;
 	}
 	
 	// DEAD
@@ -174,12 +177,11 @@ public class Blackboard {
 	
 	// CORPSES
 	public Map<String, Position> getCorpsesPlayers() {
-		return deadPlayers;
+		return corpses;
 	}
 	
 	public void setPlayerAsCorpse(String key, int x, int y) {
-		alivePlayers.remove(key);
-		deadPlayers.put(key, new Position (x, y));
+		corpses.put(key, new Position (x, y));
 	}
 	
 	public void incrementTaskDone() {
