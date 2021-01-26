@@ -1,9 +1,5 @@
-
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.FSMBehaviour;
@@ -28,7 +24,7 @@ public class Crewmate extends Agent {
 	private final String DOINGTASK = "DoingTask";
 	private static final String OVER = "Over"; 
 
-	private List<Position> tasks;
+	private Map<String, Position> tasks;
 	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
 	
@@ -44,7 +40,7 @@ public class Crewmate extends Agent {
 		states.put("dead", false);
 		states.put("task", false);
 		
-		tasks = new ArrayList<>();
+		tasks = new HashMap<>();
 		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -64,7 +60,7 @@ public class Crewmate extends Agent {
 		// TASKS
 		Object[] args= getArguments();
 		for(Object p : args) {
-			tasks.add(bb.getTaskPosition(p.toString()));
+			tasks.put(p.toString(), bb.getTaskPosition(p.toString()));
 		}
 		
 		// FSM
@@ -200,21 +196,26 @@ public class Crewmate extends Agent {
 		public void onTick() {
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
-				endValue = 0;
 				
 				// INFO
 				
 				// MOVEMENT
 				if(!tasks.isEmpty()) {					
-					Position closestTask = DistanceUtils.closestTask(myPosition, tasks);					
-					if(DistanceUtils.manDistance(myPosition, closestTask) == 0) {
+					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
+					
+					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
 						doingTaskCounter=3;
 						endValue=3;
+						states.replace("task", true);
+						states.replace("playing", false);
+
 					}else {
-						myPosition = DistanceUtils.nextMove(myPosition, closestTask);
+						endValue = 0;
+						myPosition = DistanceUtils.nextMove(myPosition, tasks.get(closestTask));
 					}
 					
 				}else {
+					endValue = 0;
 					myPosition = DistanceUtils.randomMove(myPosition);
 				}
 				
@@ -246,23 +247,22 @@ public class Crewmate extends Agent {
 		
 		public DoingTask(Agent a, long period) {
 			super(a, period);
-			// TODO Auto-generated constructor stub
 		}
 
 		@Override
 		protected void onTick() {
 			
 			if(states.get("task")) {
-				doingTaskCounter--;
-				endValue = 0;
+				doingTaskCounter -= 1;
 				
 				if(doingTaskCounter == 0) {
 					states.replace("task", false);
-					states.replace("playing", true);
-					
-					Position task = DistanceUtils.closestTask(bb.getPlayerPosition(getLocalName()),tasks);
-					tasks.remove(tasks.indexOf(task));
-					endValue=1;
+					states.replace("playing", true);					
+					String task = DistanceUtils.closestTask(bb.getPlayerPosition(getLocalName()), tasks);
+					tasks.remove(task);
+					endValue = 1;
+				} else {
+					endValue = 0;
 				}
 				
 			}else if(states.get("meeting")) {
@@ -315,7 +315,6 @@ public class Crewmate extends Agent {
 
 		public Emergency(Agent a, long period) {
 			super(a, period);
-			// TODO Auto-generated constructor stub
 		}
 
 		@Override

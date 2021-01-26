@@ -71,7 +71,7 @@ public class Game extends Agent {
 			int numPlayers = Integer.parseInt((String) args[0]);
 			int numImposters = Integer.parseInt((String) args[1]);
 			
-			if(numPlayers > 10 || numPlayers < 4) {
+			/*if(numPlayers > 10 || numPlayers < 4) {
 				System.out.println("Number of players should be between 4 and 10.");
 				return;
 			}
@@ -92,8 +92,10 @@ public class Game extends Agent {
 			} else {
 				numOfCrewmates = numPlayers - numImposters;
 				numOfImposters = numImposters;
-			}
+			}*/
 
+			numOfCrewmates = numPlayers - numImposters;
+			numOfImposters = numImposters;
 		} else {
 			System.out.println("Parameters should be in the format: game:Game(numOfPlayers, numOfImposters)");
 			return;

@@ -35,10 +35,9 @@ public class Blackboard {
 		return players.get(key);
 	}
 	
-	public Position setPlayerPosition(String key, int x, int y) {
-		if(players.containsKey(key)) players.remove(key);
-		return players.put(key, new Position(x, y));
-
+	public void setPlayerPosition(String key, int x, int y) {
+		if(players.containsKey(key)) players.replace(key , new Position(x, y));
+		else players.put(key, new Position(x, y));
 	}
 	
 	public Map<String, Position> getPlayersPositions(){

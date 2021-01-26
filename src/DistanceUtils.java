@@ -1,6 +1,5 @@
-import java.util.List;
+import java.util.Map;
 import java.util.Random;
-
 
 public class DistanceUtils {
 
@@ -8,12 +7,13 @@ public class DistanceUtils {
 		return Math.abs(p1.getX() - p2.getX()) + Math.abs(p1.getY() - p2.getY());
 	}
 
-	public static Position closestTask(Position pos, List<Position> tasks) {
-		Position result = tasks.get(0);
-		
-		for(Position p : tasks) {
-			if(manDistance(pos, p) < manDistance(pos, result))
-				result = p;
+	public static String closestTask(Position pos, Map<String, Position> tasks) {
+		String[] keys = tasks.keySet().toArray(new String[tasks.keySet().size()]);
+		String result = keys[0];
+
+		for(String key : keys) {
+			if(manDistance(pos, tasks.get(key)) < manDistance(pos, tasks.get(result)))
+				result = key;
 		}
 		
 		return result;
@@ -26,13 +26,16 @@ public class DistanceUtils {
 		int goalY = goal.getY();
 		
 		if(myX > goalX) {
-			return new Position(myX-1,myY);
+			return new Position(myX - 1,myY);
+			
 		}else if(myX < goalX) {
-			return new Position(myX+1,myY);
+			return new Position(myX + 1,myY);
+			
 		}else if(myY > goalY) {
-			return new Position(myX-1,myY);
+			return new Position(myX, myY - 1);
+			
 		}else {
-			return new Position(myX-1,myY);
+			return new Position(myX,myY + 1);
 		}
 
 	}
