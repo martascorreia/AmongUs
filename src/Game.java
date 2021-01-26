@@ -103,11 +103,11 @@ public class Game extends Agent {
 		
 		createMap();
 		createAgents();
-		createBehaviour();
+		behaviours();
 		
 	}	
 	
-	private void createBehaviour() {
+	private void behaviours() {
 		// FSM BEHAVIOUR
 		FSMBehaviour game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
@@ -151,8 +151,7 @@ public class Game extends Agent {
 		
 		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
         addBehaviour(tbf.wrap(game));
-        addBehaviour(tbf.wrap(prints));
-	
+        addBehaviour(tbf.wrap(prints));	
 	}
 
 	private void createMap() {
@@ -341,8 +340,10 @@ public class Game extends Agent {
 		
 		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {			
 			try {
-				Object args[] = new Object[1];
+				Object args[] = new Object[3];
 				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
 				
 				Colors name = colors[indexColor];				
 				bb.setPlayerPosition(name.toString(), 11, 5);
