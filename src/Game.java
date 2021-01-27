@@ -567,13 +567,9 @@ public class Game extends Agent {
 			tbf.getThread(tasks).interrupt();
 			tbf.getThread(prints).interrupt();
 			tbf.interrupt();
-		}	
-		
-		public int onEnd(){
 			printMap();
-			return 0;
-			
-		}
+			myAgent.doDelete();
+		}	
 	}
 
 }
