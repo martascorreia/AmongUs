@@ -41,6 +41,7 @@ public class Game extends Agent {
 	private final Blackboard bb = Blackboard.getInstance();
 	private Map<String, String> colors;
 	private boolean onMeeting;
+	private String lastBody;
 
 
 	// Behaviours
@@ -456,17 +457,23 @@ public class Game extends Agent {
 				String[] message = msg.getContent().split(" ");
 
 				if(message[0].equals("Body") ) { // Body YELLOW
-					System.out.println(msg.getSender().getLocalName()+ " found " + message[1] + "'s body.");	
+					//System.out.println(msg.getSender().getLocalName()+ " found " + message[1] + "'s body.");	
 					endValue = 1;
-
+					ACLMessage foundBodyMessage =  new ACLMessage(ACLMessage.INFORM);
+					foundBodyMessage.setContent(msg.getSender().getLocalName()+ " found " + message[1] + " body at " + message[2] );
+					foundBodyMessage.addReceiver(new AID(getLocalName(),AID.ISLOCALNAME));
+					
 					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 					sendMsg.setContent("Meeting");
 					List<String> players = bb.getAllPlayers();
 					for(String player : players) {
 						sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
+						foundBodyMessage.addReceiver(new AID(player,AID.ISLOCALNAME));
 					}				
 					onMeeting = true;
+					
 					send(sendMsg);
+					send(foundBodyMessage);
 
 				} else if(message[0].equals("Meeting")) { // Meeting
 					System.out.println(msg.getSender().getLocalName() + " called a meeting.");	
@@ -507,6 +514,12 @@ public class Game extends Agent {
 		@Override
 		public void action() {
 			//System.out.println("Start Meeting");
+			ACLMessage msg = myAgent.receive();
+			
+			if(msg != null) {
+				System.out.println(msg.getContent());
+			}
+			
 		}	
 
 		public int onEnd() {

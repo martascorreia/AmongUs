@@ -1,4 +1,8 @@
+import java.time.LocalTime;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import jade.core.AID;
@@ -29,6 +33,10 @@ public class Crewmate extends Agent {
 	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
 
+	private String lastDead;
+	private String deadPlace;
+	//private List<String> info;
+	private Map<Date,String> info;
 
 	//I saw Green at Oxygen // 5 palavras 
 	//I saw Green with Orange at Oxygen // 6 palavrs
@@ -50,7 +58,7 @@ public class Crewmate extends Agent {
 		states.put("over", false);
 		states.put("dead", false);
 		states.put("task", false);
-
+		info = new HashMap<>();
 		tasks = new HashMap<>();
 
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -132,73 +140,74 @@ public class Crewmate extends Agent {
 		@Override
 		public void action() {
 			ACLMessage rec = null;
-			rec = receive();
+			if(!states.get("meeting")) {
+				rec = receive();
 
-			if(rec != null) {				
-				String msg = rec.getContent();
+				if(rec != null) {				
+					String msg = rec.getContent();
 
-				// Reactor
-				if(msg.equals("ReactorProblem")) {
-					states.replace("reactor", true);
-					states.replace("task", false);
-					states.replace("playing", false);
-				}else if(msg.equals("ReactorFixed")) {
-					states.replace("playing", true);
-					states.replace("reactor", false);
+					// Reactor
+					if(msg.equals("ReactorProblem")) {
+						states.replace("reactor", true);
+						states.replace("task", false);
+						states.replace("playing", false);
+					}else if(msg.equals("ReactorFixed")) {
+						states.replace("playing", true);
+						states.replace("reactor", false);
 
-					// Lights
-				}else if(msg.equals("LightsProblem")) {
-					states.replace("lights", true);
-					states.replace("task", false);
-					states.replace("playing", false);									
-				}else if(msg.equals("LightsFixed")) {
-					states.replace("playing", true);
-					states.replace("lights", false);
+						// Lights
+					}else if(msg.equals("LightsProblem")) {
+						states.replace("lights", true);
+						states.replace("task", false);
+						states.replace("playing", false);									
+					}else if(msg.equals("LightsFixed")) {
+						states.replace("playing", true);
+						states.replace("lights", false);
 
-					// Oxygen
-				}else if(msg.equals("OxygenProblem")) {
-					states.replace("oxygen", true);
-					states.replace("task", false);
-					states.replace("playing", false);	
-				}else if(msg.equals("OxygenFixed")) {
-					states.replace("playing", true);
-					states.replace("oxygen", false);
+						// Oxygen
+					}else if(msg.equals("OxygenProblem")) {
+						states.replace("oxygen", true);
+						states.replace("task", false);
+						states.replace("playing", false);	
+					}else if(msg.equals("OxygenFixed")) {
+						states.replace("playing", true);
+						states.replace("oxygen", false);
 
-					// Game Over
-				}else if(msg.equals("GameOver")) {		
-					states.replace("over", true);
-					states.replace("playing", false);
-					states.replace("task", false);
-					states.replace("meeting", false);
-					states.replace("reactor", false);
-					states.replace("lights", false);
-					states.replace("oxygen", false);
+						// Game Over
+					}else if(msg.equals("GameOver")) {		
+						states.replace("over", true);
+						states.replace("playing", false);
+						states.replace("task", false);
+						states.replace("meeting", false);
+						states.replace("reactor", false);
+						states.replace("lights", false);
+						states.replace("oxygen", false);
 
-					// Meeting
-				}else if(msg.equals("Meeting")) {					
-					states.replace("meeting", true);
-					states.replace("playing", false);
-					states.replace("task", false);
-					states.replace("reactor", false);
-					states.replace("lights", false);
-					states.replace("oxygen", false);
-				}else if(msg.equals("EndMeeting")) {
-					states.replace("playing", true);
-					states.replace("meeting", false);
+						// Meeting
+					}else if(msg.equals("Meeting")) {					
+						states.replace("meeting", true);
+						states.replace("playing", false);
+						states.replace("task", false);
+						states.replace("reactor", false);
+						states.replace("lights", false);
+						states.replace("oxygen", false);
+					}else if(msg.equals("EndMeeting")) {
+						states.replace("playing", true);
+						states.replace("meeting", false);
 
-					// Dead
-				}else if(msg.equals("YouAreDead")) {
-					states.replace("dead", true);
-					synchronized (bb) {
-						Position pos = bb.getAlivePlayers().get(getLocalName());
-						bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
-						bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
+						// Dead
+					}else if(msg.equals("YouAreDead")) {
+						states.replace("dead", true);
+						synchronized (bb) {
+							Position pos = bb.getAlivePlayers().get(getLocalName());
+							bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY()); //erro
+							bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
+						}
 					}
-
-
 				}
 			}
 		}
+
 	}
 
 	public class Playing extends OneShotBehaviour {
@@ -214,12 +223,29 @@ public class Crewmate extends Agent {
 			}
 
 			if(states.get("playing")) {
+
+
+				Map<String,Position> vision = DistanceUtils.getPlayersNear(getLocalName(),bb.getCrewmateVision(),bb.getAlivePlayers());
+				if(!vision.isEmpty()) {
+					String[] players = vision.keySet().toArray(new String[vision.keySet().size()]);
+					for(String player : players) {
+						String task = bb.getLocal(vision.get(player));
+						String information = "I was with " + player + " in " + task ;
+						if(bb.isATask(vision.get(player))) {
+							information += " and " + player + " was on the task";
+						}
+						info.put(Calendar.getInstance().getTime(), information);
+					}
+				}
+
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				// INFO
 				String dead = DistanceUtils.reportCorpse(getLocalName());
 				if(dead != null && !states.get("dead")) {
+					
+					String local = bb.getLocal(bb.getCorpsesPlayers().get(dead));
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent("Body " + dead);
+					msg.setContent("Body " + dead + " " + local);
 					msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 					send(msg);
 				}else if(!tasks.isEmpty()) {		
@@ -313,16 +339,72 @@ public class Crewmate extends Agent {
 
 		@Override
 		public void action() {
-	
+			ACLMessage rec = null;
 			if(states.get("meeting")) {
-				endValue = 0;
-				if(!states.get("dead")) {
-					// talks
+			
+				rec = receive();
 
+				if(rec != null) {				
+					String msg = rec.getContent();
+
+					// Reactor
+					if(msg.equals("ReactorProblem")) {
+					}else if(msg.equals("ReactorFixed")) {
+						// Lights
+					}else if(msg.equals("LightsProblem")) {									
+					}else if(msg.equals("LightsFixed")) {
+						// Oxygen
+					}else if(msg.equals("OxygenProblem")) {
+					}else if(msg.equals("OxygenFixed")) {
+
+						// Game Over
+					}else if(msg.equals("GameOver")) {		
+						states.replace("over", true);
+						states.replace("playing", false);
+						states.replace("task", false);
+						states.replace("meeting", false);
+						states.replace("reactor", false);
+						states.replace("lights", false);
+						states.replace("oxygen", false);
+
+						// Meeting					
+					}else if(msg.equals("EndMeeting")) {
+						lastDead = null;
+						deadPlace= null;
+						states.replace("playing", true);
+						states.replace("meeting", false);
+
+						// Dead
+					}else if(msg.equals("YouAreDead")) {
+						states.replace("dead", true);
+						synchronized (bb) {
+							Position pos = bb.getAlivePlayers().get(getLocalName());
+							bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
+							bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
+						}
+					}else {
+						//MENSAGENS DA REUNIAO
+						String[] message = msg.split(" ");
+						
+						if(message.length == 4 && message[1].equals("found")){
+							
+							lastDead = message[2];
+							deadPlace= message[5];
+							
+							System.out.println(lastDead + " " + deadPlace);
+						}
+						
+						
+					}
 				}
-
+				endValue = 0;
 			} else if(states.get("playing")) {
+				
+				lastDead = null;
+				deadPlace= null;
+				
 				endValue = 1;
+			
 
 			} else {
 				endValue = 2;
@@ -354,7 +436,8 @@ public class Crewmate extends Agent {
 				}
 			}else if (dead != null) {
 				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-				msg.setContent("Body " + dead);
+				String local = bb.getLocal(bb.getCorpsesPlayers().get(dead));
+				msg.setContent("Body " + dead+ " " + local);
 				msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 				send(msg);
 			} else if(states.get("reactor")) {

@@ -74,7 +74,22 @@ public class DistanceUtils {
 		Map<String, Position> playersNear = new HashMap<>();
 		for(String key : keys) {
 			Position value = players.get(key);
-			if(DistanceUtils.manDistance(myPosition, value) <= d && !key.equals(name) && !bb.getImposters().contains(key)) {
+			if(DistanceUtils.manDistance(myPosition, value) <= d  && !key.equals(name) && !bb.getImposters().contains(key)) {
+				playersNear.put(key, value);
+			}
+		}			
+		
+		return playersNear;
+	}
+	
+	public static Map<String, Position> getPlayersNear(String name, double d, Map<String, Position> players) {
+		Position myPosition = bb.getPlayerPosition(name);				
+		String[] keys = players.keySet().toArray(new String[players.keySet().size()]);
+
+		Map<String, Position> playersNear = new HashMap<>();
+		for(String key : keys) {
+			Position value = players.get(key);
+			if(DistanceUtils.manDistance(myPosition, value) <= d && !key.equals(name)) {
 				playersNear.put(key, value);
 			}
 		}			

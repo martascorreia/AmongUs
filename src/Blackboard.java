@@ -207,4 +207,31 @@ public class Blackboard {
 		
 		return allPlayers;
 	}
+	
+	public String getLocal(Position p) {
+		TypeOfPosition closest = TypeOfPosition.MEETING;
+		Position closestP = new Position(10,4);
+		int x = 0, y = 0;
+		for(int i = 0; i < map.length; x++,i++) {
+			if(x == COLUMNS) {
+               y++;
+               x = 0;
+            }
+			if(map[i] != TypeOfPosition.WALL && map[i] != TypeOfPosition.NORMAL && map[i] != TypeOfPosition.VENT) {
+				Position testP =  new Position(x,y);
+				if(DistanceUtils.manDistance(p,testP) < DistanceUtils.manDistance(p,closestP)){
+					closestP = testP;
+					closest = map[i];
+				}
+			}
+		}
+		return closest.toString();
+	}
+
+
+	public boolean isATask(Position p) {
+		return tasks.containsKey(p);
+	}
+	
+	
 }
