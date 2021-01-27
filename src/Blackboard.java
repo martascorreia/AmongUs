@@ -63,8 +63,10 @@ public class Blackboard {
 	
 	public Map<String, Position> getAlivePlayers(){
 		Map<String, Position> newMap = new HashMap<>();
-		newMap.putAll(alivePlayers);
-		return alivePlayers;
+		synchronized(alivePlayers) {
+			newMap.putAll(alivePlayers);
+		}
+		return newMap;
 	}
 
 	public List<String> getAllAlivePlayers() {
@@ -193,4 +195,16 @@ public class Blackboard {
 		return tasksDone;
 	}
 	
+	public List<String> getAllPlayers(){
+		List<String> allPlayers = new ArrayList<>();
+	
+		for(String name : this.alivePlayers.keySet()) {
+			allPlayers.add(name);
+		}
+		for(String name : this.deadPlayers.keySet()) {
+			allPlayers.add(name);
+		}
+		
+		return allPlayers;
+	}
 }

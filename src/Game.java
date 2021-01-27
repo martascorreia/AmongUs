@@ -23,42 +23,34 @@ import jade.wrapper.StaleProxyException;
 public class Game extends Agent {
 
 	private static final long serialVersionUID = 1L;
-	
+
 	// States
 	private final String PLAYING = "Playing";
 	private final String MEETING = "Meeting";
 	private final String EMERGENCY = "Emergency";
 	private static final String OVER = "Over"; 
-	
+
 	// Colors
 	public final String RESET = "\u001B[0m";
-	
+
 	private int numOfImposters;
 	private int numOfCrewmates;
 	private final int LINES = 14;
 	private final int COLUMNS = 31;
 	private TypeOfPosition[] map;
 	private final Blackboard bb = Blackboard.getInstance();
-	private Map<String, Boolean> states; 
 	private Map<String, String> colors;
-	
+	private boolean onMeeting;
+
+
 	// Behaviours
 	CyclicBehaviour tasks;
 	TickerBehaviour prints;
 	FSMBehaviour game;
 	ThreadedBehaviourFactory tbf;
-	
+
 	protected void setup(){
-		states = new HashMap<>();
-		states.put("playing", true);
-		states.put("meeting", false);
-		states.put("reactor", false);
-		states.put("lights", false);
-		states.put("oxygen", false);
-		states.put("over", false);
-		states.put("dead", false);
-		states.put("task", false);
-		
+
 		colors = new HashMap<>();
 		colors.put("RED", "\033[0;91m");
 		colors.put("BLACK", "\033[0;30m");
@@ -70,7 +62,7 @@ public class Game extends Agent {
 		colors.put("CYAN", "\033[0;96m");
 		colors.put("WHITE", "\033[0;97m");
 		colors.put("PURPLE", "\033[0;35m");
-		
+		onMeeting = false;
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -91,25 +83,25 @@ public class Game extends Agent {
 		if (args != null && args.length == 2) {
 			int numPlayers = Integer.parseInt((String) args[0]);
 			int numImposters = Integer.parseInt((String) args[1]);
-			
+
 			/*if(numPlayers > 10 || numPlayers < 4) {
 				System.out.println("Number of players should be between 4 and 10.");
 				return;
 			}
-			
+
 			if(numImposters > 3 || numImposters < 1) {
 				System.out.println("Number of imposters should be between 1 and 3.");
 				return;
 			}
-			
+
 			if(numPlayers < 5 && numImposters > 1) {
 				numOfCrewmates = numPlayers - numImposters;
 				numOfImposters = 1;
-				
+
 			} else if (numPlayers < 8 && numImposters > 2) {
 				numOfCrewmates = numPlayers - numImposters;
 				numOfImposters = 2;
-				
+
 			} else {
 				numOfCrewmates = numPlayers - numImposters;
 				numOfImposters = numImposters;
@@ -118,36 +110,35 @@ public class Game extends Agent {
 			numOfCrewmates = numPlayers - numImposters;
 			numOfImposters = numImposters;
 			bb.setNum(numPlayers, numOfImposters);
-			
+
 		} else {
 			System.out.println("Parameters should be in the format: game:Game(numOfPlayers, numOfImposters)");
 			return;
 		}
-		
+
 		createMap();
 		createAgents();
 		behaviours();
-		
+
 	}	
-	
+
 	private void behaviours() {
 		tasks = new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void action() {
-				if(bb.NUMBER_TASK == bb.getTasksDone() || bb.getAlivePlayers().size() == numOfImposters) {
-					states.replace("over", true);
-					states.replace("playing", false);
-					states.replace("meeting", false);
-					states.replace("reactor", false);
-					states.replace("lights", false);
-					states.replace("oxygen", false);
-					
+				int alivePlayers;
+				synchronized(bb) {
+					alivePlayers= bb.getAlivePlayers().size();
+				}
+				if(bb.NUMBER_TASK == bb.getTasksDone() || alivePlayers == numOfImposters) {
+
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.setContent("GameOver");
-					List<String> players = Blackboard.getInstance().getAllAlivePlayers();
-					
+					List<String> players =  bb.getAllPlayers();
+
+
 					for(String player : players) {
 						msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 					}		
@@ -156,21 +147,23 @@ public class Game extends Agent {
 					msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));
 
 					send(msg);
-					
+
 					if(bb.NUMBER_TASK == bb.getTasksDone())
 						System.out.println("Victory for crewmates");
 					else 
 						System.out.println("Victory for imposters");
 				}			
 			}
+
 		};
-		
+
 		prints = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			protected void onTick() {
-				printMap();	
+				if(!onMeeting)
+					printMap();	
 			}
 		};
 
@@ -183,7 +176,7 @@ public class Game extends Agent {
 				return super.onEnd();
 			}
 		};
-				
+
 		// Registers the states of the Game
 		game.registerFirstState(new Playing(), PLAYING);
 		game.registerState(new Meeting(), MEETING);
@@ -200,43 +193,44 @@ public class Game extends Agent {
 		// MEETING
 		game.registerTransition(MEETING, PLAYING, 0);
 		game.registerTransition(MEETING, OVER, 1);
-		
+
 		// EMERGENCY
 		game.registerTransition(EMERGENCY, EMERGENCY, 0);
 		game.registerTransition(EMERGENCY, PLAYING, 1);
-		game.registerTransition(EMERGENCY, OVER, 2);
-		
+		game.registerTransition(EMERGENCY, MEETING, 2);
+		game.registerTransition(EMERGENCY, OVER, 3);
+
 		tbf = new ThreadedBehaviourFactory();
-        addBehaviour(tbf.wrap(game));
-        addBehaviour(tbf.wrap(prints));	
-        addBehaviour(tbf.wrap(tasks));	
+		addBehaviour(tbf.wrap(game));
+		addBehaviour(tbf.wrap(prints));	
+		addBehaviour(tbf.wrap(tasks));	
 
 	}
 
 	private void createMap() {
 		this.map = new TypeOfPosition[LINES * COLUMNS];
-		
+
 		int x = 0;
 		int y = 0;
 		Integer index = 0;
-		
+
 		for(int i = 0; i < LINES * COLUMNS; i++, x++) {
 			if(x == COLUMNS) {
 				y++;
 				x = 0;
 			}
-						
+
 			index = x + y * COLUMNS;
-					
+
 			if(index == 78 || index == 96 || index == 196 || index == 204 || index == 251 || index == 256 || index == 272 || index == 313 || index == 328) {
 				map[index] = TypeOfPosition.VENT;
-				
+
 			} else if(y == 0 || y == 13 || x == 0 || x == 30) {
 				map[index] = TypeOfPosition.WALL;
-				
+
 			} else if(index == 134) {
 				map[index] = TypeOfPosition.MEETING;
-				
+
 			} else if(index == 157) {
 				map[index] = TypeOfPosition.REACTOR;
 				bb.setEmergencyPosition(TypeOfPosition.REACTOR.toString(), new Position(x, y));
@@ -244,60 +238,60 @@ public class Game extends Agent {
 			} else if(index == 320) {
 				map[index] = TypeOfPosition.LIGHTS;
 				bb.setEmergencyPosition(TypeOfPosition.LIGHTS.toString(), new Position(x, y));
-			
+
 			} else if(index == 177) {
 				map[index] = TypeOfPosition.O2;
 				bb.setEmergencyPosition(TypeOfPosition.O2.toString(), new Position(x, y));
-				
+
 			} else if(index == 34) {
 				map[index] = TypeOfPosition.FILLGAS;
 				bb.setTaskPosition(TypeOfPosition.FILLGAS.toString(), new Position(x, y));
-				 
+
 			} else if(index == 375) {
 				map[index] = TypeOfPosition.LEAVES;
 				bb.setTaskPosition(TypeOfPosition.LEAVES.toString(), new Position(x, y));
-			
+
 			} else if(index == 259) {
 				map[index] = TypeOfPosition.WIRES1;
 				bb.setTaskPosition(TypeOfPosition.WIRES1.toString(), new Position(x, y));
-				
+
 			} else if(index == 198) {
 				map[index] = TypeOfPosition.MEDBAY;
 				bb.setTaskPosition(TypeOfPosition.MEDBAY.toString(), new Position(x, y));
-				
+
 			} else if(index == 387) {
 				map[index] = TypeOfPosition.TRASH;
 				bb.setTaskPosition(TypeOfPosition.TRASH.toString(), new Position(x, y));
-			
+
 			} else if(index == 50) {
 				map[index] = TypeOfPosition.DOWNLOAD;
 				bb.setTaskPosition(TypeOfPosition.DOWNLOAD.toString(), new Position(x, y));
-			
+
 			} else if(index == 85) {
 				map[index] = TypeOfPosition.ASTEROIDS;
 				bb.setTaskPosition(TypeOfPosition.ASTEROIDS.toString(), new Position(x, y));
-			
+
 			} else if(index == 267) {
 				map[index] = TypeOfPosition.UPLOAD;
 				bb.setTaskPosition(TypeOfPosition.UPLOAD.toString(), new Position(x, y));
-				
+
 			} else if(index == 300) {
 				map[index] = TypeOfPosition.CARDSWIPE;
 				bb.setTaskPosition(TypeOfPosition.CARDSWIPE.toString(), new Position(x, y));
-				
+
 			} else if(index == 397) {
 				map[index] = TypeOfPosition.SHIELDS;
 				bb.setTaskPosition(TypeOfPosition.SHIELDS.toString(), new Position(x, y));
-				
+
 			} else if(index == 215) {
 				map[index] = TypeOfPosition.WIRES2;
 				bb.setTaskPosition(TypeOfPosition.WIRES2.toString(), new Position(x, y));
-				
+
 			} else {
 				map[index] = TypeOfPosition.NORMAL;
 			}	
 		}
-		
+
 		bb.setMap(map);
 	}
 
@@ -305,7 +299,7 @@ public class Game extends Agent {
 		int j = 0;
 		int i = 0;
 		int index = 0;
-		
+
 		Map<String, Position> alivePlayers = bb.getAlivePlayers();
 		Map<String, Position> deadPlayers = bb.getDeadPlayers();
 		Map<String, Position> corpses = bb.getCorpsesPlayers();
@@ -318,7 +312,7 @@ public class Game extends Agent {
 			int ind = pos.getX() + pos.getY() * COLUMNS;
 			agentsPositions.put(ind, key);
 		}
-		
+
 		Set<String> keysD = deadPlayers.keySet();
 		Map<Integer, String> deadPositions = new HashMap<>();
 		for(String key : keysD) {
@@ -326,7 +320,7 @@ public class Game extends Agent {
 			int ind = pos.getX() + pos.getY() * COLUMNS;
 			deadPositions.put(ind, key);
 		}
-		
+
 		Set<String> keysC = corpses.keySet();
 		Map<Integer, String> corpsesPositions = new HashMap<>();
 		for(String key : keysC) {
@@ -334,41 +328,41 @@ public class Game extends Agent {
 			int ind = pos.getX() + pos.getY() * COLUMNS;
 			corpsesPositions.put(ind, key);
 		}
-				
+
 		for(int x = 0; x < LINES * COLUMNS; x++, j++) {
 			if(j == COLUMNS) {
 				i++;
 				j = 0;
 				System.out.println();
 			}
-			
+
 			index = j + i * COLUMNS;
 			String symbol = "";			
-			
+
 			if(agentsPositions.containsKey(index)) {
 				String key = agentsPositions.get(index);
 				symbol = " ";
-												
+
 				if(imposters.contains(key)) symbol = "I";
 				else symbol = "C";
-					
+
 				System.out.print(colors.get(key) + symbol + RESET);
-			
+
 			} else if(corpsesPositions.containsKey(index)) {
 				String key = corpsesPositions.get(index);
 				symbol = "B";
-				
+
 				System.out.print(colors.get(key) + symbol + RESET);
-				
+
 			} else if(deadPositions.containsKey(index)) {
 				String key = deadPositions.get(index);
 				symbol = "G";
-				
+
 				System.out.print(colors.get(key) + symbol + RESET);
-				
+
 			} else if(map[index] == TypeOfPosition.VENT){
 				System.out.print("#");
-				
+
 			} else if((map[index] == TypeOfPosition.SHIELDS || map[index] == TypeOfPosition.FILLGAS 
 					|| map[index] == TypeOfPosition.CARDSWIPE || map[index] == TypeOfPosition.ASTEROIDS
 					|| map[index] == TypeOfPosition.DOWNLOAD || map[index] == TypeOfPosition.UPLOAD
@@ -389,18 +383,18 @@ public class Game extends Agent {
 				System.out.print(" ");
 			}				
 		}
-		
+
 		System.out.println();
 	}
-	
+
 	private void createAgents() {		
 		Colors[] colors = Colors.values();
 		TypeOfPosition[] tasks = TypeOfPosition.values();
 		int indexColor = 0;
-		
+
 		AgentContainer c = getContainerController();
 		Random random = new Random();
-		
+
 		// CREW
 		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {			
 			try {
@@ -408,7 +402,7 @@ public class Game extends Agent {
 				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
 				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
 				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				
+
 				Colors name = colors[indexColor];				
 				bb.setPlayerPosition(name.toString(), 11, 5);
 				AgentController crew = c.createNewAgent(name.toString(), "Crewmate", args);
@@ -417,7 +411,7 @@ public class Game extends Agent {
 				System.out.println("Error while creating a Crewmate.");
 			}
 		}
-		
+
 		// IMPOSTERS
 		for(int i = 0; i < numOfImposters; i++, indexColor++) {
 			try {
@@ -425,7 +419,7 @@ public class Game extends Agent {
 				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
 				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
 				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				
+
 				Colors name = colors[indexColor];
 				bb.setPlayerPosition(name.toString(), 11, 4);
 				bb.setImposters(name.toString());
@@ -435,7 +429,7 @@ public class Game extends Agent {
 				System.out.println("Error while creating an Imposter.");
 			}
 		}		
-		
+
 		// EMERGENCIES
 		try {
 			AgentController lights = c.createNewAgent("LIGHTS", "Lights", null);
@@ -456,109 +450,109 @@ public class Game extends Agent {
 
 		@Override
 		public void action() {
-			if(states.get("playing")) {
-				ACLMessage msg = myAgent.receive();
+			ACLMessage msg = myAgent.receive();
 
-				if(msg != null) {
-					String[] message = msg.getContent().split(" ");
+			if(msg != null) {
+				String[] message = msg.getContent().split(" ");
 
-					if(message[0].equals("Body") ) { // Body YELLOW
-						System.out.println(msg.getSender() + " found " + message[1] + "'s body.");	
-						endValue = 1;
-						
-						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
-						sendMsg.setContent("Meeting");
-						List<String> players = bb.getAllAlivePlayers();
-						for(String player : players) {
-							sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
-						}						
-						send(sendMsg);
-						states.replace("emergency", true);
-						states.replace("playing", false);
+				if(message[0].equals("Body") ) { // Body YELLOW
+					System.out.println(msg.getSender().getLocalName()+ " found " + message[1] + "'s body.");	
+					endValue = 1;
 
-					} else if(message[0].equals("Meeting")) { // Meeting
-						System.out.println(msg.getSender() + " called a meeting.");	
-						endValue = 1;
-						
-						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
-						sendMsg.setContent("Meeting");
-						List<String> players = bb.getAllAlivePlayers();
-						for(String player : players) {
-							sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
-						}						
-						send(sendMsg);
-						
-						states.replace("emergency", true);
-						states.replace("playing", false);
+					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
+					sendMsg.setContent("Meeting");
+					List<String> players = bb.getAllPlayers();
+					for(String player : players) {
+						sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
+					}				
+					onMeeting = true;
+					send(sendMsg);
 
-					} else {
-						endValue = 0;
-					}
+				} else if(message[0].equals("Meeting")) { // Meeting
+					System.out.println(msg.getSender().getLocalName() + " called a meeting.");	
+					endValue = 1;
+					onMeeting = true;
+
+					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
+					sendMsg.setContent("Meeting");
+					List<String> players = bb.getAllPlayers();
+					for(String player : players) {
+						sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
+					}						
+					send(sendMsg);
+
+
+				} else if(message[0].equals("ReactorSabotage") || message[0].equals("LightsSabotage") || message[0].equals("OxygenSabotage")){
+
+					endValue = 2;
+				}else {
+
+					endValue = 0;
 				}
-				
-			} else if(states.get("over")) {
-				endValue = 3;
-			
-			}else {
-				endValue = 2;
 			}
-		}	
-		
+
+		}
+
+
 		public int onEnd() {
 			return endValue;
 		}
 	}
-	
-	
+
+
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		@Override
 		public void action() {
-			
+			//System.out.println("Start Meeting");
 		}	
 
 		public int onEnd() {
 			return endValue;
 		}
 	}
-	
+
 	public class Emergency extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		@Override
 		public void action() {
-			if(states.get("emergency")) {
-				ACLMessage msg = myAgent.receive();
+			ACLMessage msg = myAgent.receive();
 
-				if(msg != null) {
-					String message = msg.getContent();
+			if(msg != null) {
+				String[] message = msg.getContent().split(" ");
 
-					if(message.equals("GameOver") ) { // Body YELLOW
-						System.out.println("Game over: time to fix emergency run out.");	
-						endValue = 1;						
-						
-					} else {
-						endValue = 0;
-					}
+				if(message[0].equals("Body") ) { // Body YELLOW
+					System.out.println(msg.getSender() + " found " + message[1] + "'s body.");
+					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
+					sendMsg.setContent("Meeting");
+					List<String> players = bb.getAllPlayers();
+					for(String player : players) {
+						sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
+					}						
+					send(sendMsg);
+					onMeeting = true;
+					endValue = 2;
+				}else if(message[0].equals("ReactorFixed") || message[0].equals("LightsFixed") || message[0].equals("OxygenFixed")) {
+					endValue = 1;
+				}else if(message[0].equals("GameOver") ) { // Body YELLOW
+					System.out.println("Game over: time to fix emergency run out.");	
+					endValue = 3;						
+
+				} else {
+					endValue = 0;
 				}
-				
-			} else if(states.get("over")) {
-				endValue = 3;
-			
-			}else {
-				endValue = 2;
 			}
-			
 		}	
 
 		public int onEnd() {
 			return endValue;
 		}
 	}
-	
+
 	public class Over extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 

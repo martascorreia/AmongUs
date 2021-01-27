@@ -28,12 +28,18 @@ public class Crewmate extends Agent {
 	private Map<String, Position> tasks;
 	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
-	
+
+
+	//I saw Green at Oxygen // 5 palavras 
+	//I saw Green with Orange at Oxygen // 6 palavrs
+	//Im on Oxygen and i saw Green now // 8 palavras
+	//Green did a task  //4 
+
 	// Behaviours
 	Interaction interaction;
 	FSMBehaviour game;
 	ThreadedBehaviourFactory tbf;
-	
+
 	protected void setup(){
 		states = new HashMap<>();
 		states.put("playing", true);
@@ -44,9 +50,9 @@ public class Crewmate extends Agent {
 		states.put("over", false);
 		states.put("dead", false);
 		states.put("task", false);
-		
+
 		tasks = new HashMap<>();
-		
+
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -61,13 +67,13 @@ public class Crewmate extends Agent {
 			System.out.println("Exception while registering the service!");
 			return;
 		}
-		
+
 		// TASKS
 		Object[] args= getArguments();
 		for(Object p : args) {
 			tasks.put(p.toString(), bb.getTaskPosition(p.toString()));
 		}
-		
+
 		// FSM
 		game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
@@ -77,7 +83,7 @@ public class Crewmate extends Agent {
 				return super.onEnd();
 			}
 		};
-		
+
 		// Registers the states of the Agent
 		game.registerFirstState(new Playing(), PLAYING);
 		game.registerState(new DoingTask(),DOINGTASK);
@@ -99,7 +105,7 @@ public class Crewmate extends Agent {
 		game.registerTransition(DOINGTASK, MEETING,2);
 		game.registerTransition(DOINGTASK, EMERGENCY,3);
 		game.registerTransition(DOINGTASK, OVER,4);
-		
+
 		// MEETING
 		game.registerTransition(MEETING, MEETING, 0);
 		game.registerTransition(MEETING, PLAYING, 1);
@@ -127,10 +133,10 @@ public class Crewmate extends Agent {
 		public void action() {
 			ACLMessage rec = null;
 			rec = receive();
-			
+
 			if(rec != null) {				
 				String msg = rec.getContent();
-				
+
 				// Reactor
 				if(msg.equals("ReactorProblem")) {
 					states.replace("reactor", true);
@@ -139,8 +145,8 @@ public class Crewmate extends Agent {
 				}else if(msg.equals("ReactorFixed")) {
 					states.replace("playing", true);
 					states.replace("reactor", false);
-					
-				// Lights
+
+					// Lights
 				}else if(msg.equals("LightsProblem")) {
 					states.replace("lights", true);
 					states.replace("task", false);
@@ -148,8 +154,8 @@ public class Crewmate extends Agent {
 				}else if(msg.equals("LightsFixed")) {
 					states.replace("playing", true);
 					states.replace("lights", false);
-					
-				// Oxygen
+
+					// Oxygen
 				}else if(msg.equals("OxygenProblem")) {
 					states.replace("oxygen", true);
 					states.replace("task", false);
@@ -157,8 +163,8 @@ public class Crewmate extends Agent {
 				}else if(msg.equals("OxygenFixed")) {
 					states.replace("playing", true);
 					states.replace("oxygen", false);
-					
-				// Game Over
+
+					// Game Over
 				}else if(msg.equals("GameOver")) {		
 					states.replace("over", true);
 					states.replace("playing", false);
@@ -167,8 +173,8 @@ public class Crewmate extends Agent {
 					states.replace("reactor", false);
 					states.replace("lights", false);
 					states.replace("oxygen", false);
-					
-				// Meeting
+
+					// Meeting
 				}else if(msg.equals("Meeting")) {					
 					states.replace("meeting", true);
 					states.replace("playing", false);
@@ -180,7 +186,7 @@ public class Crewmate extends Agent {
 					states.replace("playing", true);
 					states.replace("meeting", false);
 
-				// Dead
+					// Dead
 				}else if(msg.equals("YouAreDead")) {
 					states.replace("dead", true);
 					synchronized (bb) {
@@ -188,33 +194,37 @@ public class Crewmate extends Agent {
 						bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
 						bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
 					}
-					
+
 
 				}
 			}
 		}
 	}
-	
+
 	public class Playing extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		public void action() {     
-			
+
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-			
+
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				// INFO
-				
-				// MOVEMENT
-				if(!tasks.isEmpty()) {					
+				String dead = DistanceUtils.reportCorpse(getLocalName());
+				if(dead != null && !states.get("dead")) {
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					msg.setContent("Body " + dead);
+					msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
+					send(msg);
+				}else if(!tasks.isEmpty()) {		
+					// MOVEMENT
 					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
-					
 					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
 						doingTaskCounter = 3;
 						endValue = 3;
@@ -225,7 +235,7 @@ public class Crewmate extends Agent {
 						endValue = 0;
 						myPosition = DistanceUtils.nextMove(myPosition, tasks.get(closestTask));
 					}
-					
+
 				}else {
 					endValue = 0;
 					myPosition = DistanceUtils.randomMove(myPosition);
@@ -235,60 +245,62 @@ public class Crewmate extends Agent {
 				}
 			}else if(states.get("meeting")) {
 				endValue = 1;
-				
+
 			}else if(states.get("over")) {
 				endValue = 4;
-				
+
 			}else if(states.get("task")){
 				endValue = 3;
-				
+
 			}else {
 				endValue = 2;
 			}
-			
+
 		}	
 
 		public int onEnd() {
 			return endValue;
 		}
 	}
-	
+
 	public class DoingTask extends OneShotBehaviour{
-		
+
 		private static final long serialVersionUID = 1L;
 		private int endValue;
-		
+
 		public void action() {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-			
+
 			if(states.get("task")) {
 				doingTaskCounter -= 1;
-				
+
 				if(doingTaskCounter == 0) {
 					states.replace("task", false);
 					states.replace("playing", true);					
 					String task = DistanceUtils.closestTask(bb.getPlayerPosition(getLocalName()), tasks);
 					tasks.remove(task);
-					bb.incrementTaskDone();
+					synchronized(bb) {
+						bb.incrementTaskDone();
+					}
 					endValue = 1;
 				} else {
 					endValue = 0;
 				}
-				
+
 			}else if(states.get("meeting")) {
 				endValue = 2;
-				
+
 			}else if(states.get("over")) {
 				endValue = 4;
-				
+
 			}else {
 				endValue = 3;
 			}
 		}
-		
+
 		public int onEnd() {
 			return endValue;
 		}		
@@ -301,17 +313,17 @@ public class Crewmate extends Agent {
 
 		@Override
 		public void action() {
-			
+	
 			if(states.get("meeting")) {
 				endValue = 0;
 				if(!states.get("dead")) {
 					// talks
-				
+
 				}
-			
+
 			} else if(states.get("playing")) {
 				endValue = 1;
-				
+
 			} else {
 				endValue = 2;
 			}		
@@ -332,14 +344,19 @@ public class Crewmate extends Agent {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-			 
+			String dead = DistanceUtils.reportCorpse(getLocalName());
 			if(states.get("dead")) {
 				endValue = 1;
-				
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
 
-				
+				Position myPosition = bb.getPlayerPosition(getLocalName());
+				synchronized(bb){
+					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				}
+			}else if (dead != null) {
+				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+				msg.setContent("Body " + dead);
+				msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
+				send(msg);
 			} else if(states.get("reactor")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				Position emergency = bb.getEmergencyPosition("REACTOR");
@@ -354,13 +371,14 @@ public class Crewmate extends Agent {
 					endValue = 0;
 					myPosition = DistanceUtils.nextMove(myPosition, emergency);
 				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				synchronized(bb) {
+					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				}
 				endValue = 0;
 			} else if(states.get("lights")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				Position emergency = bb.getEmergencyPosition("LIGHTS");
-				
+
 				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.setContent("LightsFix");
@@ -371,33 +389,35 @@ public class Crewmate extends Agent {
 					endValue = 0;
 					myPosition = DistanceUtils.nextMove(myPosition, emergency);
 				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				synchronized(bb) {
+					bb.setPlayerPosition(getLocalName(),myPosition.getX(), myPosition.getY());
+				}
 				endValue = 0;
 			} else if(states.get("oxygen")){
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				Position emergency = bb.getEmergencyPosition("O2");
-				
+
 				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.setContent("O2Fix");
 					msg.addReceiver(new AID("O2", AID.ISLOCALNAME));
 					send(msg);
-					
+
 				}else {
 					endValue = 0;
 					myPosition = DistanceUtils.nextMove(myPosition, emergency);
 				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				synchronized(bb) {
+					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				}
 				endValue = 0;		
-				
+
 			}else if(states.get("over")) {
 				endValue = 3;
-				
+
 			}else if(states.get("playing")){
 				endValue = 1;
-				
+
 			}else {
 				endValue = 2;
 			}

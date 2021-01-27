@@ -81,5 +81,20 @@ public class DistanceUtils {
 		
 		return playersNear;
 	}
+	
+	public static String reportCorpse (String name) {
+		Position myPosition = bb.getPlayerPosition(name);
+		Map<String,Position> corpses = bb.getCorpsesPlayers();
+		String[] keys = corpses.keySet().toArray(new String[corpses.keySet().size()]);
+		for(String corpse : keys) {
+			Position value= corpses.get(corpse);
+			if(DistanceUtils.manDistance(myPosition, value) <= bb.getCrewmateVision()) {
+				return corpse;
+			}
+		}
+		
+		return null;
+		
+	}
 }
 

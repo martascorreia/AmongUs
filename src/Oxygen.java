@@ -49,7 +49,7 @@ public class Oxygen extends Agent{
 					if(timer == 0) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("GameOver");
-						List<String> players = Blackboard.getInstance().getAllAlivePlayers();
+						List<String> players =  bb.getAllPlayers();
 						
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
@@ -80,6 +80,7 @@ public class Oxygen extends Agent{
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
+						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 						send(msg);
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						timer = 40;
@@ -92,6 +93,7 @@ public class Oxygen extends Agent{
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
+						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 						send(msg);
 						sabotage = false;
 						bb.setEmergencyCalling(false);

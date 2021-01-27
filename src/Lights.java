@@ -48,6 +48,7 @@ public class Lights extends Agent {
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
+						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 						send(msg);
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						
@@ -58,6 +59,7 @@ public class Lights extends Agent {
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
+						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 						send(msg);
 						bb.setEmergencyCalling(false);
 						bb.setCrewmateVision(bb.CREWMATE_VISION);

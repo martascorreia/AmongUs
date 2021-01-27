@@ -25,19 +25,19 @@ public class Imposter extends Agent {
 	private final String EMERGENCY = "Emergency";
 	private final String DOINGTASK = "DoingTask";
 	private static final String OVER = "Over"; 
-	
+
 	private Map<String, Position> tasks;
 	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
 	private int killCooldownCounter = 40;
 	private int sabotageCooldownCounter = 10;
-	
+
 	// Behaviours
 	ThreadedBehaviourFactory tbf;
 	TickerBehaviour killCooldown;
 	TickerBehaviour sabotageCooldown;
 	FSMBehaviour game;
-		
+
 	protected void setup(){		
 		states = new HashMap<>();
 		states.put("playing", true);
@@ -48,9 +48,9 @@ public class Imposter extends Agent {
 		states.put("over", false);
 		states.put("dead", false);
 		states.put("task", false);
-		
+
 		tasks = new HashMap<>();
-		
+
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -65,18 +65,18 @@ public class Imposter extends Agent {
 			System.out.println("Exception while registering the service!");
 			return;
 		}		
-		
+
 		// behaviours 
 		// ticker behaviour - kill cooldown
 		// ticker behaviour - emergency cooldown
 		// fsm behaviour - playing
-		
+
 		// TASKS
 		Object[] args= getArguments();
 		for(Object p : args) {
 			tasks.put(p.toString(), bb.getTaskPosition(p.toString()));
 		}
-		
+
 		killCooldown = new TickerBehaviour(this, 1000) {
 			private static final long serialVersionUID = 1L;
 
@@ -85,9 +85,9 @@ public class Imposter extends Agent {
 				if(killCooldownCounter != 0)
 					killCooldownCounter--;
 			}
-			
+
 		};
-		
+
 		sabotageCooldown = new TickerBehaviour(this, 1000) {
 			private static final long serialVersionUID = 1L;
 
@@ -96,9 +96,9 @@ public class Imposter extends Agent {
 				if(sabotageCooldownCounter != 0)
 					sabotageCooldownCounter--;
 			}
-			
+
 		};
-		
+
 		// FSM
 		game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
@@ -108,7 +108,7 @@ public class Imposter extends Agent {
 				return super.onEnd();
 			}
 		};
-		
+
 		// Registers the states of the Agent
 		game.registerFirstState(new Playing(), PLAYING);
 		game.registerState(new DoingTask(), DOINGTASK);
@@ -130,7 +130,7 @@ public class Imposter extends Agent {
 		game.registerTransition(DOINGTASK, MEETING,2);
 		game.registerTransition(DOINGTASK, EMERGENCY,3);
 		game.registerTransition(DOINGTASK, OVER,4);
-		
+
 		// MEETING
 		game.registerTransition(MEETING, MEETING, 0);
 		game.registerTransition(MEETING, PLAYING, 1);
@@ -149,7 +149,7 @@ public class Imposter extends Agent {
 		addBehaviour(tbf.wrap(sabotageCooldown));
 		addBehaviour(tbf.wrap(new Interaction()));
 	}
-	
+
 	public class Interaction extends CyclicBehaviour{
 
 		private static final long serialVersionUID = 1L;
@@ -158,10 +158,10 @@ public class Imposter extends Agent {
 		public void action() {
 			ACLMessage rec = null;
 			rec = receive();
-			
+
 			if(rec != null) {				
 				String msg = rec.getContent();
-				
+
 				// REACTOR
 				if(msg.equals("ReactorProblem")) {
 					states.replace("reactor", true);
@@ -170,8 +170,8 @@ public class Imposter extends Agent {
 				}else if(msg.equals("ReactorFixed")) {
 					states.replace("playing", true);
 					states.replace("reactor", false);
-					
-				// LIGHTS
+
+					// LIGHTS
 				}else if(msg.equals("LightsProblem")) {
 					states.replace("lights", true);
 					states.replace("task", false);
@@ -179,8 +179,8 @@ public class Imposter extends Agent {
 				}else if(msg.equals("LightsFixed")) {
 					states.replace("playing", true);
 					states.replace("lights", false);
-					
-				// Oxygen
+
+					// Oxygen
 				}else if(msg.equals("OxygenProblem")) {
 					states.replace("oxygen", true);
 					states.replace("task", false);
@@ -188,8 +188,8 @@ public class Imposter extends Agent {
 				}else if(msg.equals("OxygenFixed")) {
 					states.replace("playing", true);
 					states.replace("oxygen", false);
-					
-				// Game Over
+
+					// Game Over
 				}else if(msg.equals("GameOver")) {		
 					states.replace("over", true);
 					states.replace("playing", false);
@@ -198,8 +198,8 @@ public class Imposter extends Agent {
 					states.replace("reactor", false);
 					states.replace("lights", false);
 					states.replace("oxygen", false);
-					
-				// Meeting
+
+					// Meeting
 				}else if(msg.equals("Meeting")) {					
 					states.replace("meeting", true);
 					states.replace("playing", false);
@@ -211,7 +211,7 @@ public class Imposter extends Agent {
 					states.replace("playing", true);
 					states.replace("meeting", false);
 
-				// Dead
+					// Dead
 				}else if(msg.equals("YouAreDead")) {
 					states.replace("dead", true);
 
@@ -219,54 +219,59 @@ public class Imposter extends Agent {
 			}
 		}
 	}
-	
+
 	public class Playing extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		public void action() {     
-			
+
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-			
+
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());				
-				
+
 				Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
 				Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
 				Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
-				
+
 				if(killable.size() == 1 && killCooldownCounter == 0) {
 					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
+
 					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
-					
+
 					if(crewmatesSee.isEmpty()) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("YouAreDead");
 						msg.addReceiver(new AID(name,AID.ISLOCALNAME));
 						send(msg);
 						myPosition = killable.get(name);
-						
+
 						// CALL EMERGENCY
-						if(!bb.getEmergencyCalling()){
-							if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-								callReactor();
-							} else {
-								callOxygen();
+
+						synchronized(bb) {
+							if(!bb.getEmergencyCalling()){
+								if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+									callReactor();
+								} else {
+									callOxygen();
+								}
 							}
 						}
 					}
-					
+
 				} else if(killable.size() > 1 && callLigths() && killCooldownCounter == 0) {
-					bb.setCrewmateVision(1);
-					
+					synchronized(bb) {
+						bb.setCrewmateVision(1);
+					}
 					// could also verify every single killable
 					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
 					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
-					
+
 					if(crewmatesSee.isEmpty()) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("YouAreDead");
@@ -274,17 +279,17 @@ public class Imposter extends Agent {
 						send(msg);
 						myPosition = killable.get(name);
 					}
-					
+
 				}	else if(!imposterVision.isEmpty() && crewmateVision.isEmpty() && killCooldownCounter == 0) {
 					// could also verify every single killable
 					String name = imposterVision.keySet().toArray(new String[killable.keySet().size()])[0];					
 					myPosition = DistanceUtils.nextMove(myPosition, bb.getPlayerPosition(name));
-					
+
 				}
 				// MOVEMENT
 				else if(!tasks.isEmpty()) {					
 					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
-					
+
 					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
 						doingTaskCounter = 3;
 						endValue = 3;
@@ -295,23 +300,23 @@ public class Imposter extends Agent {
 						endValue = 0;
 						myPosition = DistanceUtils.nextMove(myPosition, tasks.get(closestTask));
 					}
-					
+
 				}else {
 					endValue = 0;
 					myPosition = DistanceUtils.randomMove(myPosition);
 				}
-				
+
 				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				
+
 			}else if(states.get("meeting")) {
 				endValue = 1;
-				
+
 			}else if(states.get("over")) {
 				endValue = 4;
-				
+
 			}else if(states.get("task")){
 				endValue = 3;
-				
+
 			}else {
 				endValue = 2;
 			}		
@@ -321,21 +326,21 @@ public class Imposter extends Agent {
 			return endValue;
 		}
 	}
-	
+
 	public class DoingTask extends OneShotBehaviour{
-		
+
 		private static final long serialVersionUID = 1L;
 		private int endValue;
-		
+
 		public void action() {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-			
+
 			if(states.get("task")) {
 				doingTaskCounter -= 1;
-				
+
 				if(doingTaskCounter == 0) {
 					states.replace("task", false);
 					states.replace("playing", true);					
@@ -344,9 +349,9 @@ public class Imposter extends Agent {
 					endValue = 1;
 				} else {
 					endValue = 0;
-					
+
 					Position myPosition = bb.getPlayerPosition(getLocalName());				
-					
+				
 					Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
 					Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
 					Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
@@ -354,7 +359,7 @@ public class Imposter extends Agent {
 					if(killable.size() == 1 && killCooldownCounter == 0) {
 						String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
 						Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
-						
+
 						if(crewmatesSee.isEmpty()) {
 							ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 							msg.setContent("YouAreDead");
@@ -362,24 +367,27 @@ public class Imposter extends Agent {
 							send(msg);
 							myPosition = killable.get(name);
 							endValue = 1;
-							
+
 							// CALL EMERGENCY
-							if(!bb.getEmergencyCalling()){
-								if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-									callReactor();
-								} else {
-									callOxygen();
+							synchronized(bb) {
+								if(!bb.getEmergencyCalling()){
+									if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+										callReactor();
+									} else {
+										callOxygen();
+									}
 								}
 							}
 						}
-						
+
 					} else if(killable.size() > 1 && callLigths() && killCooldownCounter == 0) {
-						bb.setCrewmateVision(1);
-						
+						synchronized(bb) {
+							bb.setCrewmateVision(1);
+						}
 						// could also verify every single killable
 						String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
 						Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
-						
+
 						if(crewmatesSee.isEmpty()) {
 							ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 							msg.setContent("YouAreDead");
@@ -388,27 +396,27 @@ public class Imposter extends Agent {
 							myPosition = killable.get(name);
 							endValue = 1;
 						}
-						
+
 					} else if(!imposterVision.isEmpty() && crewmateVision.isEmpty() && killCooldownCounter == 0) {
 						// could also verify every single killable
 						String name = imposterVision.keySet().toArray(new String[killable.keySet().size()])[0];					
 						myPosition = DistanceUtils.nextMove(myPosition, bb.getPlayerPosition(name));
 						endValue = 1;
-						
+
 					}
 				}
-				
+
 			}else if(states.get("meeting")) {
 				endValue = 2;
-				
+
 			}else if(states.get("over")) {
 				endValue = 4;
-				
+
 			}else {
 				endValue = 3;
 			}
 		}
-		
+
 		public int onEnd() {
 			return endValue;
 		}		
@@ -421,7 +429,7 @@ public class Imposter extends Agent {
 
 		@Override
 		public void action() {
-			
+
 		}		
 
 		public int onEnd() {
@@ -439,22 +447,22 @@ public class Imposter extends Agent {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-			 
+
 			if(states.get("dead")) {
 				endValue = 0;
-				
+
 			} else if(bb.getEmergencyCalling()) {
-				
+
 				Position myPosition = bb.getPlayerPosition(getLocalName());				
-				
+
 				Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
 				Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
 				Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
-				
+
 				if(killable.size() == 1 && killCooldownCounter == 0) {
 					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
 					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
-					
+
 					if(crewmatesSee.isEmpty()) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("YouAreDead");
@@ -462,19 +470,19 @@ public class Imposter extends Agent {
 						send(msg);
 						myPosition = killable.get(name);
 					}
-				
+
 				} else if(!imposterVision.isEmpty() && crewmateVision.isEmpty() && killCooldownCounter == 0) {
 					// could also verify every single killable
 					String name = imposterVision.keySet().toArray(new String[killable.keySet().size()])[0];					
 					myPosition = DistanceUtils.nextMove(myPosition, bb.getPlayerPosition(name));
-					
+
 				}
-				
+
 				// MOVEMENT
 				else {					
 					String emergency = "";
 					String content = "";
-					
+
 					if(states.get("reactor")) {
 						emergency = "REACTOR";
 						content = "ReactorFix";
@@ -485,7 +493,7 @@ public class Imposter extends Agent {
 						emergency = "LIGHTS";
 						content = "LightsFix";
 					}
-					
+
 					if(DistanceUtils.manDistance(myPosition, bb.getEmergencyPosition(emergency)) == 0) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent(content);
@@ -497,15 +505,15 @@ public class Imposter extends Agent {
 						myPosition = DistanceUtils.nextMove(myPosition, bb.getEmergencyPosition(emergency));
 					}	
 				}
-				
+
 				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				
+
 			}else if(states.get("playing")) {
 				endValue = 1;
-				
+
 			}else if(states.get("over")) {
 				endValue = 3;
-				
+
 			} else {
 				endValue = 2;
 			}
@@ -527,9 +535,10 @@ public class Imposter extends Agent {
 			tbf.interrupt();
 		}	 
 	}	
-	
+
 	private boolean callReactor() {
 		if(bb.getEmergencyCalling()) return false;
+	
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("ReactorSabotage");				
@@ -537,7 +546,7 @@ public class Imposter extends Agent {
 		send(msg);			
 		return true;
 	}
-	
+
 	private boolean callLigths() {
 		if(bb.getEmergencyCalling()) return false;
 		bb.setEmergencyCalling(true);
@@ -547,7 +556,7 @@ public class Imposter extends Agent {
 		send(msg);			
 		return true;
 	}
-	
+
 	private boolean callOxygen() {		
 		if(bb.getEmergencyCalling()) return false;
 		bb.setEmergencyCalling(true);
