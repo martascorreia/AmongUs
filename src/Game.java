@@ -311,6 +311,27 @@ public class Game extends Agent {
 		int j = 0;
 		int i = 0;
 		int index = 0;
+		
+		int tasksDone = bb.getTasksDone();
+		System.out.print(" ");
+		for(int k = 0; k < numOfCrewmates * 3 ; k++) {
+			System.out.print("--");
+		}
+		System.out.println();
+		System.out.print("|");
+		int l = tasksDone;
+		for(int k = 0; k < numOfCrewmates * 3; k++, l--) {
+			if(l <= 0) System.out.print("  ");
+			else System.out.print("||");
+		}
+		System.out.println("|");
+		
+		System.out.print(" ");
+		for(int k = 0; k < numOfCrewmates * 3; k++) {
+			System.out.print("--");
+		}
+		
+		System.out.println();
 
 		Map<String, Position> alivePlayers = bb.getAlivePlayers();
 		Map<String, Position> deadPlayers = bb.getDeadPlayers();
@@ -398,6 +419,7 @@ public class Game extends Agent {
 			}				
 		}
 
+		System.out.println();
 		System.out.println();
 	}
 
