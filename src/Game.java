@@ -42,6 +42,12 @@ public class Game extends Agent {
 	private Map<String, Boolean> states; 
 	private Map<String, String> colors;
 	
+	// Behaviours
+	CyclicBehaviour tasks;
+	TickerBehaviour prints;
+	FSMBehaviour game;
+	ThreadedBehaviourFactory tbf;
+	
 	protected void setup(){
 		states = new HashMap<>();
 		states.put("playing", true);
@@ -111,6 +117,8 @@ public class Game extends Agent {
 
 			numOfCrewmates = numPlayers - numImposters;
 			numOfImposters = numImposters;
+			bb.setNum(numPlayers, numOfImposters);
+			
 		} else {
 			System.out.println("Parameters should be in the format: game:Game(numOfPlayers, numOfImposters)");
 			return;
@@ -123,26 +131,41 @@ public class Game extends Agent {
 	}	
 	
 	private void behaviours() {
-		CyclicBehaviour tasks = new CyclicBehaviour() {
+		tasks = new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void action() {
-				/*if(bb.NUMBER_TASK == bb.getTasksDone()) {
+				if(bb.NUMBER_TASK == bb.getTasksDone() || bb.getAlivePlayers().size() == numOfImposters) {
 					states.replace("over", true);
 					states.replace("playing", false);
 					states.replace("meeting", false);
 					states.replace("reactor", false);
 					states.replace("lights", false);
 					states.replace("oxygen", false);
-				}*/
-				
-				
+					
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					msg.setContent("GameOver");
+					List<String> players = Blackboard.getInstance().getAllAlivePlayers();
+					
+					for(String player : players) {
+						msg.addReceiver(new AID(player,AID.ISLOCALNAME));
+					}		
+					msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));
+					msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
+					msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));
+
+					send(msg);
+					
+					if(bb.NUMBER_TASK == bb.getTasksDone())
+						System.out.println("Victory for crewmates");
+					else 
+						System.out.println("Victory for imposters");
+				}			
 			}
-			
 		};
 		
-		TickerBehaviour prints = new TickerBehaviour(this,1000) {
+		prints = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -152,7 +175,7 @@ public class Game extends Agent {
 		};
 
 		// FSM BEHAVIOUR
-		FSMBehaviour game = new FSMBehaviour(this) {
+		game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
 
 			public int onEnd() {
@@ -183,7 +206,7 @@ public class Game extends Agent {
 		game.registerTransition(EMERGENCY, PLAYING, 1);
 		game.registerTransition(EMERGENCY, OVER, 2);
 		
-		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
+		tbf = new ThreadedBehaviourFactory();
         addBehaviour(tbf.wrap(game));
         addBehaviour(tbf.wrap(prints));	
         addBehaviour(tbf.wrap(tasks));	
@@ -210,6 +233,9 @@ public class Game extends Agent {
 				
 			} else if(y == 0 || y == 13 || x == 0 || x == 30) {
 				map[index] = TypeOfPosition.WALL;
+				
+			} else if(index == 134) {
+				map[index] = TypeOfPosition.MEETING;
 				
 			} else if(index == 157) {
 				map[index] = TypeOfPosition.REACTOR;
@@ -279,8 +305,6 @@ public class Game extends Agent {
 		int j = 0;
 		int i = 0;
 		int index = 0;
-		boolean isAgent = false;
-		boolean isCorpse = false;
 		
 		Map<String, Position> alivePlayers = bb.getAlivePlayers();
 		Map<String, Position> deadPlayers = bb.getDeadPlayers();
@@ -296,7 +320,7 @@ public class Game extends Agent {
 		}
 		
 		Set<String> keysD = deadPlayers.keySet();
-		Map<Integer, String> deadPositions= new HashMap<>();
+		Map<Integer, String> deadPositions = new HashMap<>();
 		for(String key : keysD) {
 			Position pos = deadPlayers.get(key);
 			int ind = pos.getX() + pos.getY() * COLUMNS;
@@ -312,7 +336,6 @@ public class Game extends Agent {
 		}
 				
 		for(int x = 0; x < LINES * COLUMNS; x++, j++) {
-			isAgent = false;
 			if(j == COLUMNS) {
 				i++;
 				j = 0;
@@ -324,7 +347,6 @@ public class Game extends Agent {
 			
 			if(agentsPositions.containsKey(index)) {
 				String key = agentsPositions.get(index);
-				isAgent = true;
 				symbol = " ";
 												
 				if(imposters.contains(key)) symbol = "I";
@@ -334,40 +356,36 @@ public class Game extends Agent {
 			
 			} else if(corpsesPositions.containsKey(index)) {
 				String key = corpsesPositions.get(index);
-				isAgent = true;
-				isCorpse = true;
 				symbol = "B";
 				
 				System.out.print(colors.get(key) + symbol + RESET);
 				
-			} 
-			
-			if(deadPositions.containsKey(index) && !isCorpse) {
+			} else if(deadPositions.containsKey(index)) {
 				String key = deadPositions.get(index);
-				isAgent = true;
 				symbol = "G";
 				
 				System.out.print(colors.get(key) + symbol + RESET);
-			}
-			
-			if(map[index] == TypeOfPosition.VENT && !isAgent){
+				
+			} else if(map[index] == TypeOfPosition.VENT){
 				System.out.print("#");
 				
 			} else if((map[index] == TypeOfPosition.SHIELDS || map[index] == TypeOfPosition.FILLGAS 
 					|| map[index] == TypeOfPosition.CARDSWIPE || map[index] == TypeOfPosition.ASTEROIDS
 					|| map[index] == TypeOfPosition.DOWNLOAD || map[index] == TypeOfPosition.UPLOAD
 					|| map[index] == TypeOfPosition.TRASH || map[index] == TypeOfPosition.WIRES1 
-					|| map[index] == TypeOfPosition.WIRES2 || map[index] == TypeOfPosition.MEDBAY) && !isAgent){
+					|| map[index] == TypeOfPosition.WIRES2 || map[index] == TypeOfPosition.MEDBAY)){
 				System.out.print("T");
-			} else if(map[index] == TypeOfPosition.WALL && !isAgent) {
+			}else if(map[index] == TypeOfPosition.MEETING) {
+				System.out.print("o");
+			} else if(map[index] == TypeOfPosition.WALL) {
 				System.out.print("|");
-			} else if(map[index] == TypeOfPosition.O2 && !isAgent){
+			} else if(map[index] == TypeOfPosition.O2){
 				System.out.print("O");
-			} else if(map[index] == TypeOfPosition.REACTOR && !isAgent) {
+			} else if(map[index] == TypeOfPosition.REACTOR) {
 				System.out.print("R");
-			} else if(map[index] == TypeOfPosition.LIGHTS && !isAgent) {
+			} else if(map[index] == TypeOfPosition.LIGHTS) {
 				System.out.print("L");
-			} else if(!isAgent){
+			} else {
 				System.out.print(" ");
 			}				
 		}
@@ -455,7 +473,9 @@ public class Game extends Agent {
 							sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}						
 						send(sendMsg);
-						
+						states.replace("emergency", true);
+						states.replace("playing", false);
+
 					} else if(message[0].equals("Meeting")) { // Meeting
 						System.out.println(msg.getSender() + " called a meeting.");	
 						endValue = 1;
@@ -468,6 +488,9 @@ public class Game extends Agent {
 						}						
 						send(sendMsg);
 						
+						states.replace("emergency", true);
+						states.replace("playing", false);
+
 					} else {
 						endValue = 0;
 					}
@@ -507,6 +530,27 @@ public class Game extends Agent {
 
 		@Override
 		public void action() {
+			if(states.get("emergency")) {
+				ACLMessage msg = myAgent.receive();
+
+				if(msg != null) {
+					String message = msg.getContent();
+
+					if(message.equals("GameOver") ) { // Body YELLOW
+						System.out.println("Game over: time to fix emergency run out.");	
+						endValue = 1;						
+						
+					} else {
+						endValue = 0;
+					}
+				}
+				
+			} else if(states.get("over")) {
+				endValue = 3;
+			
+			}else {
+				endValue = 2;
+			}
 			
 		}	
 
@@ -520,8 +564,16 @@ public class Game extends Agent {
 
 		@Override
 		public void action() {
-			
+			tbf.getThread(tasks).interrupt();
+			tbf.getThread(prints).interrupt();
+			tbf.interrupt();
 		}	
+		
+		public int onEnd(){
+			printMap();
+			return 0;
+			
+		}
 	}
 
 }

@@ -11,13 +11,17 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
-
-
 public class Oxygen extends Agent{
 	private static final long serialVersionUID = 1L;
 	private int timer = 40;
 	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
+	
+	// Behaviours
+	ThreadedBehaviourFactory tbf;
+	TickerBehaviour oxygenTime;
+	CyclicBehaviour interaction;
+	
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -33,8 +37,8 @@ public class Oxygen extends Agent{
 			System.out.println("Exception while registering the service!");
 			return;
 		}
-		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
-		TickerBehaviour oxygenTime = new TickerBehaviour(this,1000) {
+
+		oxygenTime = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -60,7 +64,7 @@ public class Oxygen extends Agent{
 			}
 		};
 		
-		CyclicBehaviour interaction = new CyclicBehaviour() {
+		interaction = new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -68,10 +72,11 @@ public class Oxygen extends Agent{
 				ACLMessage rec = null;
 				rec= receive();
 				if(rec != null){
-					if(rec.getContent().equals("OxygenSabotage")) {
+					String message = rec.getContent();
+					if(message.equals("OxygenSabotage")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenProblem");
-						List<String> players = bb.getInstance().getAllAlivePlayers();
+						List<String> players = bb.getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -79,10 +84,11 @@ public class Oxygen extends Agent{
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						timer = 40;
 						sabotage = true;
-					}else if(rec.getContent().equals("OxygenFix")) {
+						
+					}else if(message.equals("OxygenFix")) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenFixed");
-						List<String> players = bb.getInstance().getAllAlivePlayers();
+						List<String> players = bb.getAllAlivePlayers();
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
@@ -90,11 +96,23 @@ public class Oxygen extends Agent{
 						sabotage = false;
 						bb.setEmergencyCalling(false);
 						
+					} else if(message.contentEquals("GameOver")) {
+						stopBehaviours();
 					}
+					
 				}	
 			}
 		};
+		
+		tbf = new ThreadedBehaviourFactory();
 		addBehaviour(tbf.wrap(oxygenTime));
 		addBehaviour(tbf.wrap(interaction));
+	}
+	
+	private void stopBehaviours() {
+		tbf.getThread(oxygenTime).interrupt();
+		tbf.getThread(interaction).interrupt();
+		tbf.interrupt();
+
 	}
 }

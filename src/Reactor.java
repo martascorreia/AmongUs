@@ -19,6 +19,12 @@ public class Reactor extends Agent{
 	private int timer = 0;
 	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
+	
+	// Behaviours
+	ThreadedBehaviourFactory tbf;
+	TickerBehaviour reactorTime;
+	CyclicBehaviour interaction;
+	
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -35,7 +41,7 @@ public class Reactor extends Agent{
 			return;
 		}
 	
-		TickerBehaviour reactorTime = new TickerBehaviour(this,1000) {
+		reactorTime = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -54,6 +60,7 @@ public class Reactor extends Agent{
 						
 						msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));
 						msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
+						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 						
 						send(msg);
 					}
@@ -61,7 +68,7 @@ public class Reactor extends Agent{
 			}
 		};
 		
-		CyclicBehaviour interaction = new CyclicBehaviour() {
+		interaction = new CyclicBehaviour() {
 
 			private static final long serialVersionUID = 1L;
 
@@ -86,7 +93,7 @@ public class Reactor extends Agent{
 						timer = 40;
 						sabotage = true;
 												
-					}else if(message.equals("ReactorFix")) {
+					} else if(message.equals("ReactorFix")) {
 						System.out.println("REACTOR FIXED");
 
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
@@ -101,14 +108,21 @@ public class Reactor extends Agent{
 						bb.setEmergencyCalling(false);
 
 					} else if(message.contentEquals("GameOver")) {
-						// stop behaviour
+						stopBehaviours();
 					}
 				}	
-			}
+			}			
 		};
 		
-		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
+		tbf = new ThreadedBehaviourFactory();
 		addBehaviour(tbf.wrap(reactorTime));
 		addBehaviour(tbf.wrap(interaction));
+		
+	}
+	
+	private void stopBehaviours() {
+		tbf.getThread(reactorTime).interrupt();
+		tbf.getThread(interaction).interrupt();
+		tbf.interrupt();
 	}
 }

@@ -29,6 +29,11 @@ public class Crewmate extends Agent {
 	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
 	
+	// Behaviours
+	Interaction interaction;
+	FSMBehaviour game;
+	ThreadedBehaviourFactory tbf;
+	
 	protected void setup(){
 		states = new HashMap<>();
 		states.put("playing", true);
@@ -64,7 +69,7 @@ public class Crewmate extends Agent {
 		}
 		
 		// FSM
-		FSMBehaviour game = new FSMBehaviour(this) {
+		game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
 
 			public int onEnd() {
@@ -107,9 +112,10 @@ public class Crewmate extends Agent {
 		game.registerTransition(EMERGENCY, OVER, 3);
 
 
-		ThreadedBehaviourFactory tbf = new ThreadedBehaviourFactory();
+		tbf = new ThreadedBehaviourFactory();
 		addBehaviour(tbf.wrap(game));
-		addBehaviour(tbf.wrap(new Interaction()));
+		interaction = new Interaction();
+		addBehaviour(tbf.wrap(interaction));
 	}
 
 
@@ -177,9 +183,12 @@ public class Crewmate extends Agent {
 				// Dead
 				}else if(msg.equals("YouAreDead")) {
 					states.replace("dead", true);
-					Position pos = bb.getAlivePlayers().get(getLocalName());
-					bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
-					bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
+					synchronized (bb) {
+						Position pos = bb.getAlivePlayers().get(getLocalName());
+						bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
+						bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
+					}
+					
 
 				}
 			}
@@ -221,9 +230,9 @@ public class Crewmate extends Agent {
 					endValue = 0;
 					myPosition = DistanceUtils.randomMove(myPosition);
 				}
-				
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				
+				synchronized (bb) {
+					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				}
 			}else if(states.get("meeting")) {
 				endValue = 1;
 				
@@ -327,6 +336,10 @@ public class Crewmate extends Agent {
 			if(states.get("dead")) {
 				endValue = 1;
 				
+				Position myPosition = bb.getPlayerPosition(getLocalName());
+				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+
+				
 			} else if(states.get("reactor")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				Position emergency = bb.getEmergencyPosition("REACTOR");
@@ -401,7 +414,9 @@ public class Crewmate extends Agent {
 
 		@Override
 		public void action() {
-			System.out.println("Agent "+ getLocalName()+ "stopped");
+			tbf.getThread(interaction).interrupt();
+			tbf.getThread(game).interrupt();
+			tbf.interrupt();
 		}	 
 	}	
 }

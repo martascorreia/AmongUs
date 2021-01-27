@@ -20,7 +20,7 @@ public class Blackboard {
 	private static final int COLUMNS = 31;
 	public int CREWMATE_VISION = 2;
 	public int IMPOSTER_VISION = 6;
-	public final int NUMBER_TASK = numOfCrewmates * 3;
+	public int NUMBER_TASK;
 	
 	public int tasksDone = 0;
 	private boolean emergencyCalling;
@@ -64,7 +64,7 @@ public class Blackboard {
 	public Map<String, Position> getAlivePlayers(){
 		Map<String, Position> newMap = new HashMap<>();
 		newMap.putAll(alivePlayers);
-		return newMap;
+		return alivePlayers;
 	}
 
 	public List<String> getAllAlivePlayers() {
@@ -108,6 +108,7 @@ public class Blackboard {
 		this.numOfPlayers = numOfPlayers;
 		this.numOfCrewmates = numOfPlayers - numOfImposters;
 		this.numOfImposters = numOfImposters;
+		this.NUMBER_TASK = numOfCrewmates * 3;
 	}
 	
 	public int getNumOfPlayers() {
