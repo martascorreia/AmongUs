@@ -26,10 +26,14 @@ public class Imposter extends Agent {
 	private final String DOINGTASK = "DoingTask";
 	private static final String OVER = "Over"; 
 
+	
+	private final int KILLCOOLDOWN = 15;
+	private final int SABOTAGECOOLDOWN = 10;
+
 	private Map<String, Position> tasks;
 	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
-	private int killCooldownCounter = 40;
+	private int killCooldownCounter = 10;
 	private int sabotageCooldownCounter = 10;
 
 	// Behaviours
@@ -65,11 +69,6 @@ public class Imposter extends Agent {
 			System.out.println("Exception while registering the service!");
 			return;
 		}		
-
-		// behaviours 
-		// ticker behaviour - kill cooldown
-		// ticker behaviour - emergency cooldown
-		// fsm behaviour - playing
 
 		// TASKS
 		Object[] args= getArguments();
@@ -210,6 +209,8 @@ public class Imposter extends Agent {
 				}else if(msg.equals("EndMeeting")) {
 					states.replace("playing", true);
 					states.replace("meeting", false);
+					killCooldownCounter = KILLCOOLDOWN;
+					sabotageCooldownCounter = SABOTAGECOOLDOWN;
 
 					// Dead
 				}else if(msg.equals("YouAreDead")) {
@@ -347,6 +348,7 @@ public class Imposter extends Agent {
 					String task = DistanceUtils.closestTask(bb.getPlayerPosition(getLocalName()), tasks);
 					tasks.remove(task);
 					endValue = 1;
+					
 				} else {
 					endValue = 0;
 

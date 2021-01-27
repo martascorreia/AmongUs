@@ -74,6 +74,8 @@ public class Oxygen extends Agent{
 				if(rec != null){
 					String message = rec.getContent();
 					if(message.equals("OxygenSabotage")) {
+						System.out.println("-----------------------OXYGEN SABOTAGE-----------------------");
+
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenProblem");
 						List<String> players = bb.getAllAlivePlayers();
@@ -87,6 +89,8 @@ public class Oxygen extends Agent{
 						sabotage = true;
 						
 					}else if(message.equals("OxygenFix")) {
+						System.out.println("-----------------------OXYGEN FIXED-----------------------");
+
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("OxygenFixed");
 						List<String> players = bb.getAllAlivePlayers();

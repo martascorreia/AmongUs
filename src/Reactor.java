@@ -80,7 +80,7 @@ public class Reactor extends Agent{
 					String message = rec.getContent();
 					
 					if(message.equals("ReactorSabotage")) {
-						System.out.println("REACTOR SABOTAGE");
+						System.out.println("-----------------------REACTOR SABOTAGE-----------------------");
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorProblem");
 						List<String> players = bb.getAllAlivePlayers();
@@ -94,7 +94,7 @@ public class Reactor extends Agent{
 						sabotage = true;
 												
 					} else if(message.equals("ReactorFix")) {
-						System.out.println("REACTOR FIXED");
+						System.out.println("-----------------------REACTOR FIXED-----------------------");
 
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("ReactorFixed");

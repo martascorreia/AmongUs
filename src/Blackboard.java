@@ -19,12 +19,12 @@ public class Blackboard {
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
 	public int CREWMATE_VISION = 2;
-	public int IMPOSTER_VISION = 6;
+	public int IMPOSTER_VISION = 4;
 	public int NUMBER_TASK;
 	
 	public int tasksDone = 0;
 	private boolean emergencyCalling;
-	private int imposterKillDistance = 2;
+	private int imposterKillDistance = 1;
 
 	private TypeOfPosition[] map;
 	
@@ -229,7 +229,7 @@ public class Blackboard {
 	}
 
 
-	public boolean isATask(Position p) {
+	public boolean isTask(Position p) {
 		return tasks.containsKey(p);
 	}
 	

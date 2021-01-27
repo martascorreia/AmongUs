@@ -7,7 +7,8 @@ public enum TypeOfPosition {
 	LIGHTS,
 	REACTOR, 
 	O2, 
-	FILLGAS, 
+	FILLGAS,
+	FILLGAS2, 
 	CARDSWIPE, 
 	ASTEROIDS, 
 	DOWNLOAD, 
@@ -17,5 +18,7 @@ public enum TypeOfPosition {
 	WIRES2, 
 	SHIELDS, 
 	MEDBAY, 
-	LEAVES
+	LEAVES,
+	SIMONSAYS,
+	ONETOTEN
 }

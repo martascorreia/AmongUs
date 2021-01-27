@@ -42,6 +42,8 @@ public class Lights extends Agent {
 				if(rec != null){
 					String message = rec.getContent();
 					if(message.equals("LightsSabotage")) {
+						System.out.println("-----------------------LIGHTS SABOTAGE-----------------------");
+
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("LightsProblem");
 						List<String> players = bb.getAllAlivePlayers();
@@ -53,6 +55,8 @@ public class Lights extends Agent {
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						
 					}else if(message.equals("LightsFix")) {
+						System.out.println("-----------------------LIGTHS FIXED-----------------------");
+
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("LightsFixed");
 						List<String> players = bb.getAllAlivePlayers();

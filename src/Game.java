@@ -41,8 +41,6 @@ public class Game extends Agent {
 	private final Blackboard bb = Blackboard.getInstance();
 	private Map<String, String> colors;
 	private boolean onMeeting;
-	private String lastBody;
-
 
 	// Behaviours
 	CyclicBehaviour tasks;
@@ -139,13 +137,14 @@ public class Game extends Agent {
 					msg.setContent("GameOver");
 					List<String> players =  bb.getAllPlayers();
 
-
 					for(String player : players) {
 						msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 					}		
+					
 					msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));
 					msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
 					msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));
+					msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 
 					send(msg);
 
@@ -247,6 +246,10 @@ public class Game extends Agent {
 			} else if(index == 34) {
 				map[index] = TypeOfPosition.FILLGAS;
 				bb.setTaskPosition(TypeOfPosition.FILLGAS.toString(), new Position(x, y));
+			
+			} else if(index == 344) {
+				map[index] = TypeOfPosition.FILLGAS2;
+				bb.setTaskPosition(TypeOfPosition.FILLGAS2.toString(), new Position(x, y));
 
 			} else if(index == 375) {
 				map[index] = TypeOfPosition.LEAVES;
@@ -287,7 +290,15 @@ public class Game extends Agent {
 			} else if(index == 215) {
 				map[index] = TypeOfPosition.WIRES2;
 				bb.setTaskPosition(TypeOfPosition.WIRES2.toString(), new Position(x, y));
+			
+			} else if(index == 70) {
+				map[index] = TypeOfPosition.ONETOTEN;
+				bb.setTaskPosition(TypeOfPosition.ONETOTEN.toString(), new Position(x, y));
 
+			} else if(index == 218) {
+				map[index] = TypeOfPosition.SIMONSAYS;
+				bb.setTaskPosition(TypeOfPosition.SIMONSAYS.toString(), new Position(x, y));
+					
 			} else {
 				map[index] = TypeOfPosition.NORMAL;
 			}	
@@ -368,7 +379,9 @@ public class Game extends Agent {
 					|| map[index] == TypeOfPosition.CARDSWIPE || map[index] == TypeOfPosition.ASTEROIDS
 					|| map[index] == TypeOfPosition.DOWNLOAD || map[index] == TypeOfPosition.UPLOAD
 					|| map[index] == TypeOfPosition.TRASH || map[index] == TypeOfPosition.WIRES1 
-					|| map[index] == TypeOfPosition.WIRES2 || map[index] == TypeOfPosition.MEDBAY)){
+					|| map[index] == TypeOfPosition.WIRES2 || map[index] == TypeOfPosition.MEDBAY
+					|| map[index] == TypeOfPosition.FILLGAS2 ||  map[index] == TypeOfPosition.ONETOTEN
+					|| map[index] == TypeOfPosition.SIMONSAYS)){
 				System.out.print("T");
 			}else if(map[index] == TypeOfPosition.MEETING) {
 				System.out.print("o");
@@ -400,9 +413,9 @@ public class Game extends Agent {
 		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {			
 			try {
 				Object args[] = new Object[3];
-				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
 
 				Colors name = colors[indexColor];				
 				bb.setPlayerPosition(name.toString(), 11, 5);
@@ -458,27 +471,29 @@ public class Game extends Agent {
 
 				if(message[0].equals("Body") ) { // Body YELLOW
 					//System.out.println(msg.getSender().getLocalName()+ " found " + message[1] + "'s body.");	
-					endValue = 1;
-					ACLMessage foundBodyMessage =  new ACLMessage(ACLMessage.INFORM);
-					foundBodyMessage.setContent(msg.getSender().getLocalName()+ " found " + message[1] + " body at " + message[2] );
-					foundBodyMessage.addReceiver(new AID(getLocalName(),AID.ISLOCALNAME));
 					
 					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 					sendMsg.setContent("Meeting");
 					List<String> players = bb.getAllPlayers();
+
+					ACLMessage foundBodyMessage =  new ACLMessage(ACLMessage.INFORM);
+					foundBodyMessage.setContent(msg.getSender().getLocalName() + " found " + message[1] + " body at " + message[2]);
+					foundBodyMessage.addReceiver(new AID(getLocalName(),AID.ISLOCALNAME));
+					
 					for(String player : players) {
 						sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						foundBodyMessage.addReceiver(new AID(player,AID.ISLOCALNAME));
 					}				
-					onMeeting = true;
 					
 					send(sendMsg);
 					send(foundBodyMessage);
+					
+					endValue = 1;
+					onMeeting = true;
+					System.out.println("-----------------------MEETING-----------------------");
 
 				} else if(message[0].equals("Meeting")) { // Meeting
 					System.out.println(msg.getSender().getLocalName() + " called a meeting.");	
-					endValue = 1;
-					onMeeting = true;
 
 					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 					sendMsg.setContent("Meeting");
@@ -487,11 +502,16 @@ public class Game extends Agent {
 						sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
 					}						
 					send(sendMsg);
-
+					endValue = 1;
+					onMeeting = true;
+					System.out.println("-----------------------MEETING-----------------------");
 
 				} else if(message[0].equals("ReactorSabotage") || message[0].equals("LightsSabotage") || message[0].equals("OxygenSabotage")){
-
 					endValue = 2;
+					
+				} else if(message[0].equals("GameOver")){
+					endValue = 3;
+					
 				}else {
 
 					endValue = 0;
@@ -506,18 +526,17 @@ public class Game extends Agent {
 		}
 	}
 
-
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		@Override
 		public void action() {
-			//System.out.println("Start Meeting");
 			ACLMessage msg = myAgent.receive();
 			
 			if(msg != null) {
-				System.out.println(msg.getContent());
+				String message = msg.getContent();
+				System.out.println(msg.getSender().getLocalName() + ": " + message);
 			}
 			
 		}	

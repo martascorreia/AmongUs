@@ -200,7 +200,7 @@ public class Crewmate extends Agent {
 						states.replace("dead", true);
 						synchronized (bb) {
 							Position pos = bb.getAlivePlayers().get(getLocalName());
-							bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY()); //erro
+							bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
 							bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
 						}
 					}
@@ -223,33 +223,33 @@ public class Crewmate extends Agent {
 			}
 
 			if(states.get("playing")) {
-
-
+				
+				// INFO
 				Map<String,Position> vision = DistanceUtils.getPlayersNear(getLocalName(),bb.getCrewmateVision(),bb.getAlivePlayers());
 				if(!vision.isEmpty()) {
 					String[] players = vision.keySet().toArray(new String[vision.keySet().size()]);
 					for(String player : players) {
-						String task = bb.getLocal(vision.get(player));
-						String information = "I was with " + player + " in " + task ;
-						if(bb.isATask(vision.get(player))) {
-							information += " and " + player + " was on the task";
-						}
+						Position value = vision.get(player);
+						String task = bb.getLocal(value);
+						String information = "I was with " + player + " near " + task ;
+						if(bb.isTask(value)) 
+							information += " and " + player + " was on that task";
+						
 						info.put(Calendar.getInstance().getTime(), information);
 					}
 				}
 
+				// MOVEMENT
 				Position myPosition = bb.getPlayerPosition(getLocalName());
-				// INFO
 				String dead = DistanceUtils.reportCorpse(getLocalName());
 				if(dead != null && !states.get("dead")) {
-					
 					String local = bb.getLocal(bb.getCorpsesPlayers().get(dead));
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.setContent("Body " + dead + " " + local);
 					msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 					send(msg);
+					
 				}else if(!tasks.isEmpty()) {		
-					// MOVEMENT
 					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
 					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
 						doingTaskCounter = 3;
@@ -347,8 +347,11 @@ public class Crewmate extends Agent {
 				if(rec != null) {				
 					String msg = rec.getContent();
 
+					
+					// THIS IS THE SAME AS ABOVE BUT MEETING IS TRUE
 					// Reactor
 					if(msg.equals("ReactorProblem")) {
+						
 					}else if(msg.equals("ReactorFixed")) {
 						// Lights
 					}else if(msg.equals("LightsProblem")) {									
@@ -369,8 +372,6 @@ public class Crewmate extends Agent {
 
 						// Meeting					
 					}else if(msg.equals("EndMeeting")) {
-						lastDead = null;
-						deadPlace= null;
 						states.replace("playing", true);
 						states.replace("meeting", false);
 
@@ -385,27 +386,21 @@ public class Crewmate extends Agent {
 					}else {
 						//MENSAGENS DA REUNIAO
 						String[] message = msg.split(" ");
-						
-						if(message.length == 4 && message[1].equals("found")){
-							
+						System.out.println(msg);
+
+						if(message.length == 6 && message[1].equals("found")){
 							lastDead = message[2];
 							deadPlace= message[5];
 							
 							System.out.println(lastDead + " " + deadPlace);
 						}
-						
-						
 					}
 				}
+				
 				endValue = 0;
-			} else if(states.get("playing")) {
-				
-				lastDead = null;
-				deadPlace= null;
-				
+			} else if(states.get("playing")) {		
 				endValue = 1;
-			
-
+				
 			} else {
 				endValue = 2;
 			}		
