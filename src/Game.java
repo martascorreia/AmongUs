@@ -85,7 +85,7 @@ public class Game extends Agent {
 			int numPlayers = Integer.parseInt((String) args[0]);
 			int numImposters = Integer.parseInt((String) args[1]);
 
-			/*if(numPlayers > 10 || numPlayers < 4) {
+			if(numPlayers > 10 || numPlayers < 4) {
 				System.out.println("Number of players should be between 4 and 10.");
 				return;
 			}
@@ -106,10 +106,8 @@ public class Game extends Agent {
 			} else {
 				numOfCrewmates = numPlayers - numImposters;
 				numOfImposters = numImposters;
-			}*/
+			}
 
-			numOfCrewmates = numPlayers - numImposters;
-			numOfImposters = numImposters;
 			bb.setNum(numPlayers, numOfImposters);
 
 		} else {
@@ -232,10 +230,7 @@ public class Game extends Agent {
 
 			index = x + y * COLUMNS;
 
-			if(index == 78 || index == 96 || index == 196 || index == 204 || index == 251 || index == 256 || index == 272 || index == 313 || index == 328) {
-				map[index] = TypeOfPosition.VENT;
-
-			} else if(y == 0 || y == 13 || x == 0 || x == 30) {
+			if(y == 0 || y == 13 || x == 0 || x == 30) {
 				map[index] = TypeOfPosition.WALL;
 
 			} else if(index == 134) {
@@ -402,10 +397,7 @@ public class Game extends Agent {
 				symbol = "G";
 
 				System.out.print(colors.get(key) + symbol + RESET);
-
-			} else if(map[index] == TypeOfPosition.VENT){
-				System.out.print("#");
-
+				
 			} else if((map[index] == TypeOfPosition.SHIELDS || map[index] == TypeOfPosition.FILLGAS 
 					|| map[index] == TypeOfPosition.CARDSWIPE || map[index] == TypeOfPosition.ASTEROIDS
 					|| map[index] == TypeOfPosition.DOWNLOAD || map[index] == TypeOfPosition.UPLOAD
@@ -466,6 +458,21 @@ public class Game extends Agent {
 			//imp.start();			
 		}		
 		
+		for(String imp : imposters) {
+			try {
+				Object args[] = new Object[3];
+				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
+
+				AgentController agent = c.createNewAgent(imp, "Imposter", args);
+				agent.start();	
+
+			} catch (StaleProxyException e) {
+				System.out.println("Error while creating an Imposter.");
+			}
+		}
+		
 		for(String crew : crewmates) {
 			try {
 				Object args[] = new Object[3];
@@ -481,20 +488,6 @@ public class Game extends Agent {
 			}
 		}
 		
-		for(String imp : imposters) {
-			try {
-				Object args[] = new Object[3];
-				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
-
-				AgentController agent = c.createNewAgent(imp, "Imposter", args);
-				agent.start();	
-
-			} catch (StaleProxyException e) {
-				System.out.println("Error while creating an Imposter.");
-			}
-		}
 
 		// EMERGENCIES
 		try {
@@ -610,9 +603,8 @@ public class Game extends Agent {
 			Map<String, Integer> votes = new HashMap<>();
 			Map<String, Position> players = bb.getAlivePlayers();
 			String[] keys = players.keySet().toArray(new String[players.keySet().size()]);
-			for(String key : keys) {
+			for(String key : keys)
 				votes.put(key, 0);
-			}			
 			
 			for(int i = 0; i < bb.getAlivePlayers().size(); i++) {
 				ACLMessage msg3 = myAgent.receive();
@@ -633,10 +625,30 @@ public class Game extends Agent {
 			}	
 			
 			System.out.println(votedOut + " was ejected");
-			Position votedPos = bb.getAlivePlayers().get(votedOut);
-			bb.setPlayerAsDead(votedOut, votedPos.getX(), votedPos.getY());
-			endValue = 0;
+	
+			ACLMessage die = new ACLMessage(ACLMessage.INFORM);
+			die.setContent("YouAreDead");
+			die.addReceiver(new AID(votedOut, AID.ISLOCALNAME));
+			send(die);
+
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+			}
+			bb.resetCorpses();
 			
+			ACLMessage end = new ACLMessage(ACLMessage.INFORM);
+			end.setContent("EndMeeting");
+			synchronized(bb) {
+				List<String> players2 = bb.getAllPlayers();
+				for(String player : players2) {
+					end.addReceiver(new AID(player,AID.ISLOCALNAME));
+				}		
+			}
+			send(end);	
+			
+			onMeeting = false;
+			endValue = 0;			
 		}	
 
 		public int onEnd() {
@@ -691,7 +703,6 @@ public class Game extends Agent {
 			tbf.getThread(tasks).interrupt();
 			tbf.getThread(prints).interrupt();
 			tbf.interrupt();
-			printMap();
 			myAgent.doDelete();
 		}	
 	}

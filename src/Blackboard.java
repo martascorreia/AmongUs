@@ -190,6 +190,10 @@ public class Blackboard {
 		corpses.put(key, new Position (x, y));
 	}
 	
+	public void resetCorpses() {
+		corpses.clear();
+	}
+	
 	public void incrementTaskDone() {
 		this.tasksDone++;
 	}
@@ -220,7 +224,7 @@ public class Blackboard {
                y++;
                x = 0;
             }
-			if(map[i] != TypeOfPosition.WALL && map[i] != TypeOfPosition.NORMAL && map[i] != TypeOfPosition.VENT) {
+			if(map[i] != TypeOfPosition.WALL && map[i] != TypeOfPosition.NORMAL) {
 				Position testP =  new Position(x,y);
 				if(DistanceUtils.manDistance(p,testP) < DistanceUtils.manDistance(p,closestP)){
 					closestP = testP;

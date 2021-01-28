@@ -149,9 +149,8 @@ public class Crewmate extends Agent {
 
 		@Override
 		public void action() {
-			ACLMessage rec = null;
 			if(!states.get("meeting")) {
-				rec = receive();
+				ACLMessage rec = receive();
 
 				if(rec != null) {				
 					String msg = rec.getContent();
@@ -354,7 +353,7 @@ public class Crewmate extends Agent {
 	//I saw Green with Orange at Oxygen // 6 palavrs TODO
 	//Im on Oxygen and i saw Green now // 8 palavras
 
-	public class Meeting extends CyclicBehaviour {
+	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
@@ -362,6 +361,8 @@ public class Crewmate extends Agent {
 		public void action() {
 			if(states.get("meeting")) {
 				ACLMessage rec = receive();
+				
+				endValue = 0;
 
 				if(rec != null) {				
 					String msg = rec.getContent();					
@@ -370,16 +371,19 @@ public class Crewmate extends Agent {
 						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 						sendMsg.setContent("ReactorFixed");
 						sendMsg.addReceiver(new AID("REACTOR", AID.ISLOCALNAME));
+						send(sendMsg);
 
 					}else if(msg.equals("LightsProblem")) {	
 						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 						sendMsg.setContent("LightsFixed");
 						sendMsg.addReceiver(new AID("LIGHTS", AID.ISLOCALNAME));
+						send(sendMsg);
 
 					}else if(msg.equals("OxygenProblem")) {
 						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 						sendMsg.setContent("OxygenFixed");
 						sendMsg.addReceiver(new AID("OXYGEN", AID.ISLOCALNAME));
+						send(sendMsg);
 
 					}else if(msg.equals("ReactorFixed") || msg.equals("LightsFixed") || msg.equals("OxygenFixed")) {
 						// do nothing
@@ -403,12 +407,10 @@ public class Crewmate extends Agent {
 						}
 						states.replace("playing", false);
 						states.replace("meeting", true);
-						endValue = 0;
 						
 					} else if(states.get("dead")) {
-						endValue = 0; 
 
-					}else {
+					} else {
 						// MEETING
 						String[] message = msg.split(" ");
 						String reporter = message[0];
@@ -492,6 +494,11 @@ public class Crewmate extends Agent {
 							} else i--;
 						}	
 						
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+						}
+						
 						// ANALYSE AND MAKE DECISION
 						String[] split = mostRecent.split(" ");
 						if(split.length > 0) {
@@ -501,11 +508,13 @@ public class Crewmate extends Agent {
 								boolean playerDoingTask = false;
 								playerDoingTask = (split.length > 6);
 	
-								//if(local.equals(deadPlace))
-									//suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
+								if(bb.getAlivePlayers().containsKey(otherPlayer)){
+									if(local.equals(deadPlace) )
+									suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
 	
-								if(playerDoingTask)
+									if(playerDoingTask)
 									suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
+								}
 							}
 						}
 
@@ -517,13 +526,14 @@ public class Crewmate extends Agent {
 								String local = split[5];
 								boolean playerDoingTask = false;
 								playerDoingTask = (split.length > 6);
-
-								//if(local.equals(deadPlace))
-									//suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
-
-								if(playerDoingTask && bb.getAlivePlayers().containsKey(otherPlayer)) 
-									suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
 								
+								if(bb.getAlivePlayers().containsKey(otherPlayer) && !getLocalName().contentEquals(otherPlayer) ){
+									//if(local.equals(deadPlace))
+										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
+	
+									if(playerDoingTask) 
+										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
+								}
 							}
 						}
 
@@ -539,26 +549,26 @@ public class Crewmate extends Agent {
 								boolean playerDoingTask = false;
 								playerDoingTask = (split.length > 6);
 
-								if(bb.getDeadPlayers().containsKey(otherPlayer)) {
+								if(!bb.getAlivePlayers().containsKey(otherPlayer)) {
 									//if(local.equals(deadPlace))
 										suspicion.replace(player, suspicion.get(player) + 20);	
 									
 									//else 
-										suspicion.replace(player, suspicion.get(player) + 15);
+										//suspicion.replace(player, suspicion.get(player) + 15);
 									
 								} else {
-									if(playerDoingTask)
+									if(playerDoingTask && !getLocalName().contentEquals(otherPlayer))
 										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
 
 									//if(local.equals(deadPlace)) {
-									suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);	
+									//suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);	
 									suspicion.replace(player, suspicion.get(player) + 10);		
 									//}
 								}
 
 							} else {
 								String local = split[4];
-								if(local.equals(deadPlace))
+								//if(local.equals(deadPlace))
 									suspicion.replace(player, suspicion.get(player) + 15);
 
 								if(DistanceUtils.manDistance(bb.getPosition(local), bb.getPosition(deadPlace)) < 10)
@@ -586,12 +596,10 @@ public class Crewmate extends Agent {
 						voting.setContent(mostSus);
 						voting.addReceiver(new AID("Game", AID.ISLOCALNAME));
 						send(voting);
-						
 						info.clear();
+						endValue = 0;
 					}
 				}
-
-				endValue = 1;
 
 			} else if(states.get("playing")) {		
 				endValue = 1;
@@ -610,12 +618,12 @@ public class Crewmate extends Agent {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
-
 		public void action() {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
+			
 			String dead = DistanceUtils.reportCorpse(getLocalName());
 			if(states.get("dead")) {
 				endValue = 1;
@@ -627,9 +635,10 @@ public class Crewmate extends Agent {
 			}else if (dead != null) {
 				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 				String local = bb.getLocal(bb.getCorpsesPlayers().get(dead));
-				msg.setContent("Body " + dead+ " " + local);
-				msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
+				msg.setContent("Body " + dead + " " + local);
+				msg.addReceiver(new AID("Game", AID.ISLOCALNAME));
 				send(msg);
+				
 			} else if(states.get("reactor")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				Position emergency = bb.getEmergencyPosition("REACTOR");

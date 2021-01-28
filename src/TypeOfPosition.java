@@ -3,7 +3,6 @@ public enum TypeOfPosition {
 	NORMAL,
 	WALL, 
 	MEETING, 
-	VENT, 
 	LIGHTS,
 	REACTOR, 
 	O2, 

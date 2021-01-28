@@ -29,7 +29,7 @@ public class Imposter extends Agent {
 	private final String DOINGTASK = "DoingTask";
 	private static final String OVER = "Over"; 
 
-	
+
 	private final int KILLCOOLDOWN = 15;
 	private final int SABOTAGECOOLDOWN = 15;
 
@@ -38,7 +38,7 @@ public class Imposter extends Agent {
 	private int doingTaskCounter = 3;
 	private int killCooldownCounter = 15;
 	private int sabotageCooldownCounter = 15;
-	
+
 	private String lastDead;
 	private String deadPlace;
 	private Map<String, Long> info;
@@ -64,7 +64,7 @@ public class Imposter extends Agent {
 		tasks = new HashMap<>();
 		info = new HashMap<>();
 		suspicion = new HashMap<>();
-		
+
 		Map<String, Position> players = bb.getAlivePlayers();
 		Iterator<String> iter = players.keySet().iterator();
 		while(iter.hasNext()) {
@@ -175,67 +175,67 @@ public class Imposter extends Agent {
 
 		@Override
 		public void action() {
-			ACLMessage rec = null;
-			rec = receive();
+			if(!states.get("meeting")) {
+				ACLMessage rec = receive();
+				if(rec != null) {				
+					String msg = rec.getContent();
 
-			if(rec != null) {				
-				String msg = rec.getContent();
+					// REACTOR
+					if(msg.equals("ReactorProblem")) {
+						states.replace("reactor", true);
+						states.replace("task", false);
+						states.replace("playing", false);
+					}else if(msg.equals("ReactorFixed")) {
+						states.replace("playing", true);
+						states.replace("reactor", false);
 
-				// REACTOR
-				if(msg.equals("ReactorProblem")) {
-					states.replace("reactor", true);
-					states.replace("task", false);
-					states.replace("playing", false);
-				}else if(msg.equals("ReactorFixed")) {
-					states.replace("playing", true);
-					states.replace("reactor", false);
+						// LIGHTS
+					}else if(msg.equals("LightsProblem")) {
+						states.replace("lights", true);
+						states.replace("task", false);
+						states.replace("playing", false);									
+					}else if(msg.equals("LightsFixed")) {
+						states.replace("playing", true);
+						states.replace("lights", false);
 
-					// LIGHTS
-				}else if(msg.equals("LightsProblem")) {
-					states.replace("lights", true);
-					states.replace("task", false);
-					states.replace("playing", false);									
-				}else if(msg.equals("LightsFixed")) {
-					states.replace("playing", true);
-					states.replace("lights", false);
+						// Oxygen
+					}else if(msg.equals("OxygenProblem")) {
+						states.replace("oxygen", true);
+						states.replace("task", false);
+						states.replace("playing", false);	
+					}else if(msg.equals("OxygenFixed")) {
+						states.replace("playing", true);
+						states.replace("oxygen", false);
 
-					// Oxygen
-				}else if(msg.equals("OxygenProblem")) {
-					states.replace("oxygen", true);
-					states.replace("task", false);
-					states.replace("playing", false);	
-				}else if(msg.equals("OxygenFixed")) {
-					states.replace("playing", true);
-					states.replace("oxygen", false);
+						// Game Over
+					}else if(msg.equals("GameOver")) {		
+						states.replace("over", true);
+						states.replace("playing", false);
+						states.replace("task", false);
+						states.replace("meeting", false);
+						states.replace("reactor", false);
+						states.replace("lights", false);
+						states.replace("oxygen", false);
 
-					// Game Over
-				}else if(msg.equals("GameOver")) {		
-					states.replace("over", true);
-					states.replace("playing", false);
-					states.replace("task", false);
-					states.replace("meeting", false);
-					states.replace("reactor", false);
-					states.replace("lights", false);
-					states.replace("oxygen", false);
+						// Meeting
+					}else if(msg.equals("Meeting")) {					
+						states.replace("meeting", true);
+						states.replace("playing", false);
+						states.replace("task", false);
+						states.replace("reactor", false);
+						states.replace("lights", false);
+						states.replace("oxygen", false);
+					}else if(msg.equals("EndMeeting")) {
+						states.replace("playing", true);
+						states.replace("meeting", false);
+						killCooldownCounter = KILLCOOLDOWN;
+						sabotageCooldownCounter = SABOTAGECOOLDOWN;
 
-					// Meeting
-				}else if(msg.equals("Meeting")) {					
-					states.replace("meeting", true);
-					states.replace("playing", false);
-					states.replace("task", false);
-					states.replace("reactor", false);
-					states.replace("lights", false);
-					states.replace("oxygen", false);
-				}else if(msg.equals("EndMeeting")) {
-					states.replace("playing", true);
-					states.replace("meeting", false);
-					killCooldownCounter = KILLCOOLDOWN;
-					sabotageCooldownCounter = SABOTAGECOOLDOWN;
+						// Dead
+					}else if(msg.equals("YouAreDead")) {
+						states.replace("dead", true);
 
-					// Dead
-				}else if(msg.equals("YouAreDead")) {
-					states.replace("dead", true);
-
+					}
 				}
 			}
 		}
@@ -255,7 +255,7 @@ public class Imposter extends Agent {
 
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());	
-				
+
 				// INFO
 				if(!states.get("dead")) {
 					Map<String,Position> vision = DistanceUtils.getPlayersNear(getLocalName(),bb.getCrewmateVision(),bb.getAlivePlayers());
@@ -264,19 +264,19 @@ public class Imposter extends Agent {
 						String task = bb.getLocal(value);
 						info.put("I was alone near " + task, System.currentTimeMillis());
 					}
-					
+
 					else {
 						String[] players = vision.keySet().toArray(new String[vision.keySet().size()]);									
-							for(String player : players) {
-								Position value = vision.get(player);
-								String task = bb.getLocal(value);
-								String information = "I was with " + player + " near " + task ;
-								if(bb.isTask(value)) 
-									information += " and " + player + " was on that task";
-	
-								info.put(information, System.currentTimeMillis());
-							}
-					
+						for(String player : players) {
+							Position value = vision.get(player);
+							String task = bb.getLocal(value);
+							String information = "I was with " + player + " near " + task ;
+							if(bb.isTask(value)) 
+								information += " and " + player + " was on that task";
+
+							info.put(information, System.currentTimeMillis());
+						}
+
 					}			
 				}
 
@@ -301,9 +301,9 @@ public class Imposter extends Agent {
 						synchronized(bb) {
 							if(!bb.getEmergencyCalling()){
 								if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-									callReactor();
+									//callReactor();
 								} else {
-									callOxygen();
+									//callOxygen();
 								}
 							}
 						}
@@ -392,16 +392,16 @@ public class Imposter extends Agent {
 					String task = DistanceUtils.closestTask(bb.getPlayerPosition(getLocalName()), tasks);
 					tasks.remove(task);
 					endValue = 1;
-					
+
 				} else {
 					endValue = 0;
 
 					Position myPosition = bb.getPlayerPosition(getLocalName());				
-				
+
 					Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
 					Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
 					Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
-					
+
 					if(killable.size() == 1 && killCooldownCounter == 0) {
 						String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
 						Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
@@ -418,9 +418,9 @@ public class Imposter extends Agent {
 							synchronized(bb) {
 								if(!bb.getEmergencyCalling()){
 									if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-										callReactor();
+										//callReactor();
 									} else {
-										callOxygen();
+										//callOxygen();
 									}
 								}
 							}
@@ -468,18 +468,19 @@ public class Imposter extends Agent {
 		}		
 	}
 
-
-	public class Meeting extends CyclicBehaviour {
+	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		@Override
 		public void action() {
 			if(states.get("meeting")) {
-				ACLMessage rec = receive();
 
-				if(rec != null) {				
-					String msg = rec.getContent();					
+				ACLMessage rec = receive();
+				if(rec == null) endValue = 0;
+
+				else {
+					String msg = rec.getContent();	
 					// Reactor
 					if(msg.equals("ReactorProblem")) {
 						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
@@ -513,13 +514,12 @@ public class Imposter extends Agent {
 						states.replace("dead", true);
 						synchronized (bb) {
 							Position pos = bb.getAlivePlayers().get(getLocalName());
-							bb.setPlayerAsCorpse(getLocalName(), pos.getX(), pos.getY());
 							bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
 						}
 						states.replace("playing", false);
 						states.replace("meeting", true);
 						endValue = 0;
-						
+
 					} else if(states.get("dead")) {
 						endValue = 0; 
 
@@ -533,7 +533,6 @@ public class Imposter extends Agent {
 						Iterator<String> iter = dead.keySet().iterator();
 						while(iter.hasNext()) 
 							suspicion.remove(iter.next());
-						
 
 						// MY INFO
 						StringBuilder sb = new StringBuilder();
@@ -549,13 +548,13 @@ public class Imposter extends Agent {
 									mostRecent = key;
 								}
 							}
-							
+
 							String[] split = mostRecent.split(" ");
 							sb.append("I am with " + split[3] + " near " + split[5]);
 							sb.append(" \n ");
 							info.remove(mostRecent);
 						}
-						
+
 						//TIME + "I was with player near task" //6
 						//TIME + "I was with player near task and player was on that task"; // 12
 						// I was alone near task //5
@@ -578,7 +577,7 @@ public class Imposter extends Agent {
 						}
 
 						// another list with the people that were with dead players					
-						
+
 						// SEND INFO
 						ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 						if(sb.length() == 0)
@@ -589,17 +588,24 @@ public class Imposter extends Agent {
 						for(String player : players) {
 							sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}			
+
 						List<String> imposters = bb.getImposters();
-                        	for(String imp : imposters)
-                        		sendMsg.removeReceiver(new AID(imp, AID.ISLOCALNAME));
-                        	
+						for(String imp : imposters)
+							sendMsg.removeReceiver(new AID(imp, AID.ISLOCALNAME));
+
 						sendMsg.addReceiver(new AID("Game", AID.ISLOCALNAME));
 						send(sendMsg);
 
 						// RECEIVE INFO
 						Map<String, String> othersInfo = new HashMap<>();
 						List<String> currentPosition = new ArrayList<String>();
-						for(int i = 0; i < bb.getAlivePlayers().size() - 1; i++) {
+
+						int size = 0;
+						for(String imp : imposters)
+							if(bb.getAlivePlayers().containsKey(imp))
+								size++;
+
+						for(int i = 0; i < bb.getAlivePlayers().size() - size; i++) {
 							ACLMessage msg2 = myAgent.receive();
 							if(msg2 != null) {
 								String rcvMsg = msg2.getContent();
@@ -610,7 +616,12 @@ public class Imposter extends Agent {
 								}
 							} else i--;
 						}	
-						
+
+						try {
+							Thread.sleep(5000);
+						} catch (InterruptedException e) {
+						}
+
 						// ANALYSE AND MAKE DECISION
 						String[] split = mostRecent.split(" ");
 						if(split.length > 0) {
@@ -619,12 +630,14 @@ public class Imposter extends Agent {
 								String local = split[5];
 								boolean playerDoingTask = false;
 								playerDoingTask = (split.length > 6);
-	
-								//if(local.equals(deadPlace))
-									//suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
-	
-								if(playerDoingTask)
-									suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
+
+								if(bb.getAlivePlayers().containsKey(otherPlayer) && !bb.getImposters().contains(otherPlayer)){
+									if(local.equals(deadPlace) )
+										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
+
+									if(playerDoingTask)
+										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
+								}
 							}
 						}
 
@@ -637,11 +650,12 @@ public class Imposter extends Agent {
 								boolean playerDoingTask = false;
 								playerDoingTask = (split.length > 6);
 
-								//if(local.equals(deadPlace))
-									//suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
+								if(bb.getAlivePlayers().containsKey(otherPlayer) && !bb.getImposters().contains(otherPlayer)){
+									if(local.equals(deadPlace))
+										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);
 
-								if(playerDoingTask && !bb.getDeadPlayers().containsKey(otherPlayer)) {
-									suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
+									if(playerDoingTask) 
+										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
 								}
 							}
 						}
@@ -660,34 +674,33 @@ public class Imposter extends Agent {
 
 								if(bb.getDeadPlayers().containsKey(otherPlayer)) {
 									//if(local.equals(deadPlace))
-										suspicion.replace(player, suspicion.get(player) + 20);	
-									
+									suspicion.replace(player, suspicion.get(player) + 20);	
+
 									//else 
-										suspicion.replace(player, suspicion.get(player) + 15);
-									
+									suspicion.replace(player, suspicion.get(player) + 15);
+
 								} else {
-									if(playerDoingTask)
+									if(playerDoingTask && !bb.getImposters().contains(otherPlayer))
 										suspicion.replace(otherPlayer, suspicion.get(otherPlayer) - 5);
 
 									//if(local.equals(deadPlace)) {
-									suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);	
+									//suspicion.replace(otherPlayer, suspicion.get(otherPlayer) + 10);	
 									suspicion.replace(player, suspicion.get(player) + 10);		
 									//}
 								}
 
 							} else {
 								String local = split[4];
-								if(local.equals(deadPlace))
-									suspicion.replace(player, suspicion.get(player) + 15);
+								//if(local.equals(deadPlace))
+								suspicion.replace(player, suspicion.get(player) + 15);
 
 								if(DistanceUtils.manDistance(bb.getPosition(local), bb.getPosition(deadPlace)) < 10)
 									suspicion.replace(player, suspicion.get(player) + 10);				
 							}
-							
+
 							if(player.equals(reporter))
 								suspicion.replace(player, 0);
 						}
-
 						// VOTE
 						Iterator<String> iter3 = suspicion.keySet().iterator();
 						String mostSus = iter3.next();
@@ -698,20 +711,19 @@ public class Imposter extends Agent {
 								mostSus = sus;
 							}							
 						}
-						
+
 						// add suspicion after votes
-						
+
 						ACLMessage voting = new ACLMessage(ACLMessage.INFORM);
 						voting.setContent(mostSus);
 						voting.addReceiver(new AID("Game", AID.ISLOCALNAME));
 						send(voting);
-						
+
 						info.clear();
+						endValue = 0;
 					}
 				}
-
-				endValue = 1;
-
+								
 			} else if(states.get("playing")) {		
 				endValue = 1;
 
@@ -826,7 +838,7 @@ public class Imposter extends Agent {
 
 	private boolean callReactor() {
 		if(bb.getEmergencyCalling()) return false;
-	
+
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("ReactorSabotage");				
