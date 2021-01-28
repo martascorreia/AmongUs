@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +16,8 @@ public class Blackboard {
 	private int numOfImposters;
 	private int numOfCrewmates;
 	private int numOfPlayers;
+	
+	private boolean isMeeting = false;
 	
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
@@ -227,10 +230,42 @@ public class Blackboard {
 		}
 		return closest.toString();
 	}
+	
+	public Position getPosition(String name) {
+		TypeOfPosition position = TypeOfPosition.valueOf(name);
+		int x = 0, y = 0;
+		for(int i = 0; i < map.length; x++,i++) {
+			if(x == COLUMNS) {
+               y++;
+               x = 0;
+            }
+			
+			if(map[i].equals(position)) {
+				return new Position(x, y);
+			}
+		}
+		return null;
+	}
 
 
 	public boolean isTask(Position p) {
-		return tasks.containsKey(p);
+		Iterator<String> iter = tasks.keySet().iterator();
+		while(iter.hasNext()) {
+			String key = iter.next();
+			Position value = tasks.get(key);
+			if(value.getX() == p.getX() && value.getY() == p.getY())
+				return true;
+		}
+		return false;
+	}
+	
+	public void setMeeting() {
+		if(isMeeting) isMeeting = false;
+		else isMeeting = true;
+	}
+	
+	public boolean isMeeting() {
+		return isMeeting;
 	}
 	
 	

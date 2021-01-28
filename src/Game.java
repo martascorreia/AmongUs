@@ -1,4 +1,6 @@
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -127,11 +129,20 @@ public class Game extends Agent {
 
 			@Override
 			public void action() {
-				int alivePlayers;
+				int alivePlayersS;
+				Map<String, Position> alivePlayers;
 				synchronized(bb) {
-					alivePlayers= bb.getAlivePlayers().size();
+					alivePlayers = bb.getAlivePlayers();
+					alivePlayersS = alivePlayers.size();
 				}
-				if(bb.NUMBER_TASK == bb.getTasksDone() || alivePlayers == numOfImposters) {
+				
+				List<String> imposters = bb.getImposters();
+				boolean countains = false;
+				for(int i = 0; i < imposters.size() && !countains; i++) {
+					countains = (alivePlayers.get(imposters.get(i)) != null);
+				}
+				
+				if(bb.NUMBER_TASK == bb.getTasksDone() || alivePlayersS == numOfImposters || !countains) {
 
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.setContent("GameOver");
@@ -192,7 +203,6 @@ public class Game extends Agent {
 
 		// MEETING
 		game.registerTransition(MEETING, PLAYING, 0);
-		game.registerTransition(MEETING, OVER, 1);
 
 		// EMERGENCY
 		game.registerTransition(EMERGENCY, EMERGENCY, 0);
@@ -315,20 +325,20 @@ public class Game extends Agent {
 		int tasksDone = bb.getTasksDone();
 		System.out.print(" ");
 		for(int k = 0; k < numOfCrewmates * 3 ; k++) {
-			System.out.print("--");
+			System.out.print("-");
 		}
 		System.out.println();
 		System.out.print("|");
 		int l = tasksDone;
 		for(int k = 0; k < numOfCrewmates * 3; k++, l--) {
-			if(l <= 0) System.out.print("  ");
-			else System.out.print("||");
+			if(l <= 0) System.out.print(" ");
+			else System.out.print("|");
 		}
 		System.out.println("|");
 		
 		System.out.print(" ");
 		for(int k = 0; k < numOfCrewmates * 3; k++) {
-			System.out.print("--");
+			System.out.print("-");
 		}
 		
 		System.out.println();
@@ -430,41 +440,61 @@ public class Game extends Agent {
 
 		AgentContainer c = getContainerController();
 		Random random = new Random();
+		
+		List<String> crewmates = new ArrayList<>();
+		List<String> imposters = new ArrayList<>();
+
 
 		// CREW
-		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {			
+		for(int i = 0; i < numOfCrewmates; i++, indexColor++) {					
+			
+			Colors name = colors[indexColor];				
+			bb.setPlayerPosition(name.toString(), 11, 5);
+			crewmates.add(name.toString());
+			//AgentController crew = c.createNewAgent(name.toString(), "Crewmate", args);
+			//crew.start();			
+		}
+
+		// IMPOSTERS
+		for(int i = 0; i < numOfImposters; i++, indexColor++) {
+			Colors name = colors[indexColor];
+			bb.setPlayerPosition(name.toString(), 11, 4);
+			bb.setImposters(name.toString());
+			imposters.add(name.toString());
+
+			//AgentController imp = c.createNewAgent(name.toString(), "Imposter", args);
+			//imp.start();			
+		}		
+		
+		for(String crew : crewmates) {
 			try {
 				Object args[] = new Object[3];
 				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
 				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
 				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
 
-				Colors name = colors[indexColor];				
-				bb.setPlayerPosition(name.toString(), 11, 5);
-				AgentController crew = c.createNewAgent(name.toString(), "Crewmate", args);
-				crew.start();
+				AgentController agent = c.createNewAgent(crew, "Crewmate", args);
+				agent.start();	
+
 			} catch (StaleProxyException e) {
 				System.out.println("Error while creating a Crewmate.");
 			}
 		}
-
-		// IMPOSTERS
-		for(int i = 0; i < numOfImposters; i++, indexColor++) {
+		
+		for(String imp : imposters) {
 			try {
 				Object args[] = new Object[3];
-				args[0] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				args[1] = tasks[random.nextInt(14 - 7 + 1) + 7];
-				args[2] = tasks[random.nextInt(14 - 7 + 1) + 7];
+				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
 
-				Colors name = colors[indexColor];
-				bb.setPlayerPosition(name.toString(), 11, 4);
-				bb.setImposters(name.toString());
-				AgentController imp = c.createNewAgent(name.toString(), "Imposter", args);
-				imp.start();
+				AgentController agent = c.createNewAgent(imp, "Imposter", args);
+				agent.start();	
+
 			} catch (StaleProxyException e) {
 				System.out.println("Error while creating an Imposter.");
 			}
-		}		
+		}
 
 		// EMERGENCIES
 		try {
@@ -505,7 +535,7 @@ public class Game extends Agent {
 					for(String player : players) {
 						sendMsg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						foundBodyMessage.addReceiver(new AID(player,AID.ISLOCALNAME));
-					}				
+					}			
 					
 					send(sendMsg);
 					send(foundBodyMessage);
@@ -547,19 +577,65 @@ public class Game extends Agent {
 			return endValue;
 		}
 	}
-
+	
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
 
 		@Override
 		public void action() {
-			ACLMessage msg = myAgent.receive();
 			
-			if(msg != null) {
-				String message = msg.getContent();
-				System.out.println(msg.getSender().getLocalName() + ": " + message);
-			}
+			// MESSAGE FROM SELF
+			ACLMessage msg = myAgent.blockingReceive();
+			bb.setMeeting();
+			String message = msg.getContent();
+			System.out.println(msg.getSender().getLocalName() + ": " + message);
+			
+			System.out.println("There are " +  bb.getAlivePlayers().size() + " players alive");
+			
+			// MESSAGES WITH INFO
+			for(int i = 0; i < bb.getAlivePlayers().size(); i++) {
+				ACLMessage msg2 = myAgent.receive();
+				if(msg2 != null) {
+					String content = msg2.getContent();
+					String[] informations = content.split(" \n ");
+					for(String info : informations)
+						System.out.println(msg2.getSender().getLocalName() + ": " + info);
+				} else i--;
+			}	
+			
+			System.out.println("-----------------------VOTES-----------------------");
+			
+			// VOTES
+			Map<String, Integer> votes = new HashMap<>();
+			Map<String, Position> players = bb.getAlivePlayers();
+			String[] keys = players.keySet().toArray(new String[players.keySet().size()]);
+			for(String key : keys) {
+				votes.put(key, 0);
+			}			
+			
+			for(int i = 0; i < bb.getAlivePlayers().size(); i++) {
+				ACLMessage msg3 = myAgent.receive();
+				if(msg3 != null) {
+					message = msg3.getContent();
+					votes.replace(message, votes.get(message) + 1);			
+					System.out.println(msg3.getSender().getLocalName() + " voted for " + message);
+				} else i--; 
+			}	
+			
+			// COUTING VOTES
+			String[] voted = votes.keySet().toArray(new String[votes.keySet().size()]);
+			String votedOut = voted[0];
+			for(String key : voted) {
+				if(votes.get(votedOut) < votes.get(key)) {
+					votedOut = key;
+				}
+			}	
+			
+			System.out.println(votedOut + " was ejected");
+			Position votedPos = bb.getAlivePlayers().get(votedOut);
+			bb.setPlayerAsDead(votedOut, votedPos.getX(), votedPos.getY());
+			endValue = 0;
 			
 		}	
 
@@ -580,7 +656,7 @@ public class Game extends Agent {
 				String[] message = msg.getContent().split(" ");
 
 				if(message[0].equals("Body") ) { // Body YELLOW
-					System.out.println(msg.getSender() + " found " + message[1] + "'s body.");
+					System.out.println(msg.getSender().getLocalName() + " found " + message[1] + "'s body.");
 					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 					sendMsg.setContent("Meeting");
 					List<String> players = bb.getAllPlayers();

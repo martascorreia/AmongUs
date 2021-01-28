@@ -103,7 +103,8 @@ public class Reactor extends Agent{
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
-						send(msg);
+						if(!bb.isMeeting())
+							send(msg);
 						sabotage = false;
 						bb.setEmergencyCalling(false);
 

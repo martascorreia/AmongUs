@@ -52,6 +52,7 @@ public class Lights extends Agent {
 						}
 						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
 						send(msg);
+				
 					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
 						
 					}else if(message.equals("LightsFix")) {
@@ -64,7 +65,8 @@ public class Lights extends Agent {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
-						send(msg);
+						if(!bb.isMeeting())
+							send(msg);
 						bb.setEmergencyCalling(false);
 						bb.setCrewmateVision(bb.CREWMATE_VISION);
 						
