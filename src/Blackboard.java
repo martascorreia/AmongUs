@@ -12,27 +12,27 @@ public class Blackboard {
 	private Map<String, Position> tasks;
 	private Map<String, Position> emergencies;
 	private List<String> imposters;
-	
+
 	private int numOfImposters;
 	private int numOfCrewmates;
 	private int numOfPlayers;
-	
+
 	private boolean isMeeting = false;
-	
+
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
 	public int CREWMATE_VISION = 2;
 	public int IMPOSTER_VISION = 4;
 	public int NUMBER_TASK;
-	
+
 	public int tasksDone = 0;
 	private boolean emergencyCalling;
 	private int imposterKillDistance = 1;
 
 	private TypeOfPosition[] map;
-	
+
 	private static Blackboard blackboard;
-	
+
 	private Blackboard() {
 		this.alivePlayers = new HashMap<>();
 		this.deadPlayers = new HashMap<>();
@@ -42,18 +42,18 @@ public class Blackboard {
 		this.imposters = new ArrayList<>();
 		this.emergencyCalling = false;
 	}
-	
+
 	public static Blackboard getInstance() {
 		if(blackboard == null) blackboard = new Blackboard();
 		return blackboard;
 	}
-	
+
 	// PLAYERS
 	public Position getPlayerPosition(String key) {
 		if(deadPlayers.containsKey(key)) return deadPlayers.get(key);
 		return alivePlayers.get(key);
 	}
-	
+
 	public void setPlayerPosition(String key, int x, int y) {
 		if(deadPlayers.containsKey(key)) {
 			if(deadPlayers.containsKey(key)) deadPlayers.replace(key , new Position(x, y));
@@ -63,7 +63,7 @@ public class Blackboard {
 			else alivePlayers.put(key, new Position(x, y));
 		}		
 	}
-	
+
 	public Map<String, Position> getAlivePlayers(){
 		Map<String, Position> newMap = new HashMap<>();
 		synchronized(alivePlayers) {
@@ -77,10 +77,10 @@ public class Blackboard {
 		for(String agent: alivePlayers.keySet()) {
 			result.add(agent);
 		}
-		
+
 		return result;
 	}
-	
+
 	// MAP	
 	public TypeOfPosition[] getMap() {
 		return map;
@@ -89,25 +89,25 @@ public class Blackboard {
 	public void setMap(TypeOfPosition[] map) {
 		this.map = map;		
 	}
-	
+
 	// TASKS
 	public Position getTaskPosition(String key) {
 		return tasks.get(key);
 	}
-	
+
 	public void setTaskPosition(String key, Position value) {
 		tasks.put(key, value);
 	}
-	
+
 	// EMERGENCIES
 	public Position getEmergencyPosition(String key) {
 		return emergencies.get(key);
 	}
-	
+
 	public void setEmergencyPosition(String key, Position value) {
 		emergencies.put(key, value);
 	}
-	
+
 	// VARIABLES
 	public void setNum(int numOfPlayers, int numOfImposters) {
 		this.numOfPlayers = numOfPlayers;
@@ -115,115 +115,122 @@ public class Blackboard {
 		this.numOfImposters = numOfImposters;
 		this.NUMBER_TASK = numOfCrewmates * 3;
 	}
-	
+
 	public int getNumOfPlayers() {
 		return numOfPlayers;
 	}
-	
+
 	public int getNumOfCrewmates() {
 		return numOfPlayers;
 	}
-	
+
 	public int getNumOfImposters() {
 		return numOfPlayers;
 	}
-	
+
 	public int getCollums() {
 		return COLUMNS;
 	}
-	
+
 	public int getLines() {
 		return LINES;
 	}
-	
+
 	// IMPOSTER
 	public void setImposters(String color) {
 		imposters.add(color);
 	}
-	
+
 	public List<String> getImposters() {
 		return imposters;
 	}
-	
+
 	// EMERGENCIES
 	public void setEmergencyCalling(boolean value) {
 		this.emergencyCalling = value;
 	}
-	
+
 	public boolean getEmergencyCalling() {
 		return this.emergencyCalling;
 	}
-	
+
 	// DISTANCES
 	public int getImposterVision() {
 		return IMPOSTER_VISION;
 	}
-	
+
 	public int getCrewmateVision() {
 		return CREWMATE_VISION;
 	}
-	
+
 	public int getDistanceKill() {
 		return imposterKillDistance;
 	}
-	
+
 	public void setCrewmateVision(int vision) {
 		CREWMATE_VISION = vision;
 	}
-	
+
 	// DEAD
 	public Map<String, Position> getDeadPlayers() {
 		return deadPlayers;
 	}
-	
+
 	public void setPlayerAsDead(String key, int x, int y) {
 		alivePlayers.remove(key);
 		deadPlayers.put(key, new Position (x, y));
 	}
-	
+
+	public void removeImposter(String key) {
+		synchronized(this) {
+			alivePlayers.remove(key);
+			imposters.remove(key);
+		}
+	}
+
 	// CORPSES
 	public Map<String, Position> getCorpsesPlayers() {
 		return corpses;
 	}
-	
+
 	public void setPlayerAsCorpse(String key, int x, int y) {
 		corpses.put(key, new Position (x, y));
 	}
-	
+
 	public void resetCorpses() {
 		corpses.clear();
 	}
-	
+
 	public void incrementTaskDone() {
 		this.tasksDone++;
 	}
-	
+
 	public int getTasksDone() {
 		return tasksDone;
 	}
-	
+
 	public List<String> getAllPlayers(){
 		List<String> allPlayers = new ArrayList<>();
-	
+
 		for(String name : this.alivePlayers.keySet()) {
 			allPlayers.add(name);
 		}
 		for(String name : this.deadPlayers.keySet()) {
 			allPlayers.add(name);
 		}
-		
+
 		return allPlayers;
 	}
-	
+
 	public String getLocal(Position p) {
 		TypeOfPosition closest = TypeOfPosition.MEETING;
 		Position closestP = new Position(10,4);
 		int x = 0, y = 0;
 		for(int i = 0; i < map.length; x++,i++) {
 			if(x == COLUMNS) {
-               y++;
-               x = 0;
-            }
+				y++;
+				x = 0;
+			}
 			if(map[i] != TypeOfPosition.WALL && map[i] != TypeOfPosition.NORMAL) {
 				Position testP =  new Position(x,y);
 				if(DistanceUtils.manDistance(p,testP) < DistanceUtils.manDistance(p,closestP)){
@@ -234,16 +241,16 @@ public class Blackboard {
 		}
 		return closest.toString();
 	}
-	
+
 	public Position getPosition(String name) {
 		TypeOfPosition position = TypeOfPosition.valueOf(name);
 		int x = 0, y = 0;
 		for(int i = 0; i < map.length; x++,i++) {
 			if(x == COLUMNS) {
-               y++;
-               x = 0;
-            }
-			
+				y++;
+				x = 0;
+			}
+
 			if(map[i].equals(position)) {
 				return new Position(x, y);
 			}
@@ -262,15 +269,15 @@ public class Blackboard {
 		}
 		return false;
 	}
-	
+
 	public void setMeeting() {
 		if(isMeeting) isMeeting = false;
 		else isMeeting = true;
 	}
-	
+
 	public boolean isMeeting() {
 		return isMeeting;
 	}
-	
-	
+
+
 }

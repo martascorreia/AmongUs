@@ -234,7 +234,11 @@ public class Imposter extends Agent {
 						// Dead
 					}else if(msg.equals("YouAreDead")) {
 						states.replace("dead", true);
-
+						states.replace("over", true);
+						
+						synchronized (bb) {
+							bb.removeImposter(getLocalName());
+						}
 					}
 				}
 			}
@@ -279,8 +283,10 @@ public class Imposter extends Agent {
 
 					}			
 				}
-
-				Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
+				Map<String, Position> imposterVision;
+				synchronized(bb) {
+					imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
+				}
 				Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
 				Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
 
@@ -297,15 +303,10 @@ public class Imposter extends Agent {
 						myPosition = killable.get(name);
 
 						// CALL EMERGENCY
-
-						synchronized(bb) {
-							if(!bb.getEmergencyCalling()){
-								if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-									//callReactor();
-								} else {
-									//callOxygen();
-								}
-							}
+						if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+							callReactor();
+						} else {
+							callOxygen();
 						}
 					}
 
@@ -415,14 +416,10 @@ public class Imposter extends Agent {
 							endValue = 1;
 
 							// CALL EMERGENCY
-							synchronized(bb) {
-								if(!bb.getEmergencyCalling()){
-									if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-										//callReactor();
-									} else {
-										//callOxygen();
-									}
-								}
+							if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+								callReactor();
+							} else {
+								callOxygen();
 							}
 						}
 
@@ -513,12 +510,13 @@ public class Imposter extends Agent {
 					}else if(msg.equals("YouAreDead")) {
 						states.replace("dead", true);
 						synchronized (bb) {
-							Position pos = bb.getAlivePlayers().get(getLocalName());
-							bb.setPlayerAsDead(getLocalName(), pos.getX(), pos.getY());
+							bb.removeImposter(getLocalName());
 						}
+						states.replace("dead", true);
+						states.replace("over", true);
 						states.replace("playing", false);
-						states.replace("meeting", true);
-						endValue = 0;
+						states.replace("meeting", false);
+						endValue = 2;
 
 					} else if(states.get("dead")) {
 						endValue = 0; 
@@ -550,7 +548,9 @@ public class Imposter extends Agent {
 							}
 
 							String[] split = mostRecent.split(" ");
-							sb.append("I am with " + split[3] + " near " + split[5]);
+							if(split.length == 6)
+								sb.append("I am with " + split[3] + " near " + split[5]);
+							else sb.append("I am alone near " + split[4]);
 							sb.append(" \n ");
 							info.remove(mostRecent);
 						}
@@ -837,7 +837,7 @@ public class Imposter extends Agent {
 	}	
 
 	private boolean callReactor() {
-		if(bb.getEmergencyCalling()) return false;
+		if(bb.getEmergencyCalling() || sabotageCooldownCounter != 0) return false;
 
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
@@ -848,7 +848,7 @@ public class Imposter extends Agent {
 	}
 
 	private boolean callLigths() {
-		if(bb.getEmergencyCalling()) return false;
+		if(bb.getEmergencyCalling() || sabotageCooldownCounter != 0) return false;
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("LigthsSabotage");				
@@ -858,7 +858,7 @@ public class Imposter extends Agent {
 	}
 
 	private boolean callOxygen() {		
-		if(bb.getEmergencyCalling()) return false;
+		if(bb.getEmergencyCalling() || sabotageCooldownCounter != 0) return false;
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("OxygenSabotage");				

@@ -327,7 +327,9 @@ public class Crewmate extends Agent {
 					synchronized(bb) {
 						bb.incrementTaskDone();
 					}
-					endValue = 1;
+					if(states.get("playing"))
+							endValue = 1;
+					else endValue = 3;
 				} else {
 					endValue = 0;
 				}
@@ -347,11 +349,6 @@ public class Crewmate extends Agent {
 			return endValue;
 		}		
 	}
-
-
-	//I saw Green at Oxygen // 5 palavras 
-	//I saw Green with Orange at Oxygen // 6 palavrs TODO
-	//Im on Oxygen and i saw Green now // 8 palavras
 
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
@@ -437,7 +434,9 @@ public class Crewmate extends Agent {
 							}
 							
 							String[] split = mostRecent.split(" ");
-							sb.append("I am with " + split[3] + " near " + split[5]);
+							if(split.length == 6)
+								sb.append("I am with " + split[3] + " near " + split[5]);
+							else sb.append("I am alone near " + split[4]);
 							sb.append(" \n ");
 							info.remove(mostRecent);
 						}
@@ -597,7 +596,7 @@ public class Crewmate extends Agent {
 						voting.addReceiver(new AID("Game", AID.ISLOCALNAME));
 						send(voting);
 						info.clear();
-						endValue = 0;
+						endValue = 0;						
 					}
 				}
 
@@ -623,15 +622,30 @@ public class Crewmate extends Agent {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-			
+						
 			String dead = DistanceUtils.reportCorpse(getLocalName());
+			
+			// ghosts keep doing task during emergencies
 			if(states.get("dead")) {
-				endValue = 1;
-
 				Position myPosition = bb.getPlayerPosition(getLocalName());
-				synchronized(bb){
-					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+				if(!tasks.isEmpty()) {		
+					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
+					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
+						doingTaskCounter = 3;
+						endValue = 3;
+						states.replace("task", true);
+					}else {
+						endValue = 1;
+						myPosition = DistanceUtils.nextMove(myPosition, tasks.get(closestTask));
+					}
+				} else {
+					synchronized(bb){
+						myPosition = DistanceUtils.randomMove(myPosition);
+						bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+					}
 				}
+				
+			// reports body
 			}else if (dead != null) {
 				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 				String local = bb.getLocal(bb.getCorpsesPlayers().get(dead));
@@ -639,6 +653,7 @@ public class Crewmate extends Agent {
 				msg.addReceiver(new AID("Game", AID.ISLOCALNAME));
 				send(msg);
 				
+			// goes to fix emergency
 			} else if(states.get("reactor")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());
 				Position emergency = bb.getEmergencyPosition("REACTOR");
