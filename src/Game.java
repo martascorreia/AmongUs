@@ -444,8 +444,6 @@ public class Game extends Agent {
 			Colors name = colors[indexColor];				
 			bb.setPlayerPosition(name.toString(), 11, 4);
 			crewmates.add(name.toString());
-			//AgentController crew = c.createNewAgent(name.toString(), "Crewmate", args);
-			//crew.start();			
 		}
 
 		// IMPOSTERS
@@ -454,9 +452,6 @@ public class Game extends Agent {
 			bb.setPlayerPosition(name.toString(), 11, 4);
 			bb.setImposters(name.toString());
 			imposters.add(name.toString());
-
-			//AgentController imp = c.createNewAgent(name.toString(), "Imposter", args);
-			//imp.start();			
 		}		
 		
 		for(String imp : imposters) {
@@ -473,16 +468,25 @@ public class Game extends Agent {
 				System.out.println("Error while creating an Imposter.");
 			}
 		}
-		
 		for(String crew : crewmates) {
 			try {
 				Object args[] = new Object[3];
-				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
-
+				int task1 = random.nextInt(17 - 7 + 1) + 7;
+				args[0] = tasks[task1];
+				
+				int task2 = random.nextInt(17 - 7 + 1) + 7;
+				while(task1 == task2) 
+					task2 = random.nextInt(17 - 7 + 1) + 7;
+				args[1] = tasks[task2].toString();
+				
+				int task3 = random.nextInt(17 - 7 + 1) + 7;
+				while(task1 == task3 || task2 == task3) 
+					task3 = random.nextInt(17 - 7 + 1) + 7;
+				args[2] = tasks[task3];
+				
 				AgentController agent = c.createNewAgent(crew, "Crewmate", args);
 				agent.start();	
+				
 
 			} catch (StaleProxyException e) {
 				System.out.println("Error while creating a Crewmate.");
@@ -547,8 +551,7 @@ public class Game extends Agent {
 					endValue = 0;
 				}
 			}
-			
-
+		
 		}
 
 		public int onEnd() {
