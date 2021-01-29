@@ -257,6 +257,9 @@ public class Imposter extends Agent {
 			} catch (InterruptedException e) {
 			}
 			
+			// TODO
+			callReactor();
+
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());	
 
@@ -851,8 +854,8 @@ public class Imposter extends Agent {
 	}	
 
 	private boolean callReactor() {
-		if(bb.getEmergencyCalling() || sabotageCooldownCounter > 0) return false;
-		sabotageCooldownCounter = 20;
+		if(bb.getEmergencyCalling() || sabotageCooldownCounter != 0) return false;
+
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("ReactorSabotage");				
@@ -862,8 +865,7 @@ public class Imposter extends Agent {
 	}
 
 	private boolean callLigths() {
-		if(bb.getEmergencyCalling() || sabotageCooldownCounter > 0) return false;
-		sabotageCooldownCounter = 20;
+		if(bb.getEmergencyCalling() || sabotageCooldownCounter != 0) return false;
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("LigthsSabotage");				
@@ -873,8 +875,7 @@ public class Imposter extends Agent {
 	}
 
 	private boolean callOxygen() {		
-		if(bb.getEmergencyCalling() || sabotageCooldownCounter > 0) return false;
-		sabotageCooldownCounter = 20;
+		if(bb.getEmergencyCalling() || sabotageCooldownCounter != 0) return false;
 		bb.setEmergencyCalling(true);
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("OxygenSabotage");				
