@@ -51,10 +51,9 @@ public class Lights extends Agent {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
-						send(msg);
-				
-					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
-						
+						if(!bb.isMeeting())
+							send(msg);
+										
 					}else if(message.equals("LightsFix")) {
 						System.out.println("-----------------------LIGTHS FIXED-----------------------");
 

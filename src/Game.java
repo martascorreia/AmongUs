@@ -457,9 +457,18 @@ public class Game extends Agent {
 		for(String imp : imposters) {
 			try {
 				Object args[] = new Object[3];
-				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				int task1 = random.nextInt(19 - 6 + 1) + 6;
+				args[0] = tasks[task1];
+				
+				int task2 = random.nextInt(19 - 6 + 1) + 6;
+				while(task1== task2) 
+					task2 = random.nextInt(19 - 6 + 1) + 6;
+				args[1] = tasks[task2].toString();
+				
+				int task3 = random.nextInt(19 - 6 + 1) + 6;
+				while(task1 == task3 || task2 == task3) 
+					task3 = random.nextInt(19 - 6 + 1) + 6;
+				args[2] = tasks[task3];
 
 				AgentController agent = c.createNewAgent(imp, "Imposter", args);
 				agent.start();	
@@ -468,20 +477,21 @@ public class Game extends Agent {
 				System.out.println("Error while creating an Imposter.");
 			}
 		}
+		
 		for(String crew : crewmates) {
 			try {
 				Object args[] = new Object[3];
-				int task1 = random.nextInt(17 - 7 + 1) + 7;
+				int task1 = random.nextInt(19 - 6 + 1) + 6;
 				args[0] = tasks[task1];
 				
-				int task2 = random.nextInt(17 - 7 + 1) + 7;
-				while(task1 == task2) 
-					task2 = random.nextInt(17 - 7 + 1) + 7;
+				int task2 = random.nextInt(19 - 6 + 1) + 6;
+				while(task1== task2) 
+					task2 = random.nextInt(19 - 6 + 1) + 6;
 				args[1] = tasks[task2].toString();
 				
-				int task3 = random.nextInt(17 - 7 + 1) + 7;
+				int task3 = random.nextInt(19 - 6 + 1) + 6;
 				while(task1 == task3 || task2 == task3) 
-					task3 = random.nextInt(17 - 7 + 1) + 7;
+					task3 = random.nextInt(19 - 6 + 1) + 6;
 				args[2] = tasks[task3];
 				
 				AgentController agent = c.createNewAgent(crew, "Crewmate", args);
@@ -521,6 +531,7 @@ public class Game extends Agent {
 				String[] message = msg.getContent().split(" ");
 
 				if(message[0].equals("Body") ) {			
+					bb.setMeeting();
 					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 					sendMsg.setContent("Meeting");
 					List<String> players = bb.getAllPlayers();
@@ -572,10 +583,15 @@ public class Game extends Agent {
 			String message = msg.getContent();
 			System.out.println(msg.getSender().getLocalName() + ": " + message);
 			
-			System.out.println("There are " +  bb.getAlivePlayers().size() + " players alive");
+			Map<String, Position> alivePlayers;
+			synchronized(bb) {
+				alivePlayers = bb.getAlivePlayers();
+			}
+			
+			System.out.println("There are " +  alivePlayers.size() + " players alive");
 			
 			// MESSAGES WITH INFO
-			for(int i = 0; i < bb.getAlivePlayers().size(); i++) {
+			for(int i = 0; i < alivePlayers.size(); i++) {
 				ACLMessage msg2 = myAgent.receive();
 				if(msg2 != null) {
 					String content = msg2.getContent();
@@ -594,7 +610,7 @@ public class Game extends Agent {
 			for(String key : keys)
 				votes.put(key, 0);
 			
-			for(int i = 0; i < bb.getAlivePlayers().size(); i++) {
+			for(int i = 0; i < alivePlayers.size(); i++) {
 				ACLMessage msg3 = myAgent.receive();
 				if(msg3 != null) {
 					message = msg3.getContent();
@@ -614,15 +630,19 @@ public class Game extends Agent {
 			
 			System.out.println(votedOut + " was ejected");
 	
-			
 			// RESET POSITIONS
-			Map<String, Position> alive = bb.getAlivePlayers();
+			Map<String, Position> alive = alivePlayers;
 			Map<String, Position> dead = bb.getDeadPlayers();
 			for(String player : alive.keySet()) 
 				bb.setPlayerPosition(player, 11, 4);
 			
 			for(String player : dead.keySet()) 
 				bb.setPlayerPosition(player, 11, 4);
+			
+			ACLMessage die = new ACLMessage(ACLMessage.INFORM);
+			die.setContent("YouAreDead");
+			die.addReceiver(new AID(votedOut, AID.ISLOCALNAME));
+			send(die);		
 			
 			ACLMessage end = new ACLMessage(ACLMessage.INFORM);
 			end.setContent("EndMeeting");
@@ -632,21 +652,12 @@ public class Game extends Agent {
 					end.addReceiver(new AID(player,AID.ISLOCALNAME));
 				}		
 			}
-			send(end);	
+			send(end);
 			
-			ACLMessage die = new ACLMessage(ACLMessage.INFORM);
-			die.setContent("YouAreDead");
-			die.addReceiver(new AID(votedOut, AID.ISLOCALNAME));
-			send(die);
-
-			try {
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
-			}
-			bb.resetCorpses();
-			
-			
+			bb.resetCorpses();			
+					
 			onMeeting = false;
+			bb.setMeeting();
 			endValue = 1;		
 		}	
 
@@ -666,7 +677,8 @@ public class Game extends Agent {
 			if(msg != null) {
 				String[] message = msg.getContent().split(" ");
 
-				if(message[0].equals("Body") ) { // Body YELLOW
+				if(message[0].equals("Body") ) { 
+					bb.setMeeting();
 					System.out.println(msg.getSender().getLocalName() + " found " + message[1] + "'s body.");
 					ACLMessage sendMsg = new ACLMessage(ACLMessage.INFORM);
 					sendMsg.setContent("Meeting");

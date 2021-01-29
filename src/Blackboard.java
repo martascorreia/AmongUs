@@ -22,7 +22,7 @@ public class Blackboard {
 	private static final int LINES = 14;
 	private static final int COLUMNS = 31;
 	public int CREWMATE_VISION = 2;
-	public int IMPOSTER_VISION = 4;
+	public int IMPOSTER_VISION = 6;
 	public int NUMBER_TASK;
 
 	public int tasksDone = 0;

@@ -83,10 +83,13 @@ public class Oxygen extends Agent{
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
 						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
-						send(msg);
-					    //addBehaviour(tbf.wrap(reactorTime)); TODO TESTAR ISTO DPS
-						timer = 40;
-						sabotage = true;
+						if(!bb.isMeeting()) {
+							send(msg);
+							timer = 40;
+							sabotage = true;
+						} else {
+							sabotage = false;
+						}
 						
 					}else if(message.equals("OxygenFix")) {
 						System.out.println("-----------------------OXYGEN FIXED-----------------------");

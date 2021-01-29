@@ -235,7 +235,7 @@ public class Imposter extends Agent {
 					}else if(msg.equals("YouAreDead")) {
 						states.replace("dead", true);
 						states.replace("over", true);
-						
+
 						synchronized (bb) {
 							bb.removeImposter(getLocalName());
 						}
@@ -256,6 +256,9 @@ public class Imposter extends Agent {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
+			
+			// TODO
+			callReactor();
 
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());	
@@ -303,10 +306,14 @@ public class Imposter extends Agent {
 						myPosition = killable.get(name);
 
 						// CALL EMERGENCY
-						if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-							callReactor();
-						} else {
-							callOxygen();
+						synchronized(bb) {
+							if(!bb.getEmergencyCalling()){
+								if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+									callReactor();
+								} else {
+									callOxygen();
+								}
+							}
 						}
 					}
 
@@ -416,10 +423,14 @@ public class Imposter extends Agent {
 							endValue = 1;
 
 							// CALL EMERGENCY
-							if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
-								callReactor();
-							} else {
-								callOxygen();
+							synchronized(bb) {
+								if(!bb.getEmergencyCalling()){
+									if(myPosition.getX() + myPosition.getY() * bb.getCollums() > 15) {
+										callReactor();
+									} else {
+										callOxygen();
+									}
+								}
 							}
 						}
 
@@ -505,6 +516,8 @@ public class Imposter extends Agent {
 					} else if(msg.equals("EndMeeting")) {
 						states.replace("playing", true);
 						states.replace("meeting", false);
+						killCooldownCounter = KILLCOOLDOWN;
+						sabotageCooldownCounter = SABOTAGECOOLDOWN;
 						endValue = 1;
 
 					}else if(msg.equals("YouAreDead")) {
@@ -599,13 +612,18 @@ public class Imposter extends Agent {
 						// RECEIVE INFO
 						Map<String, String> othersInfo = new HashMap<>();
 						List<String> currentPosition = new ArrayList<String>();
+						
+						Map<String, Position> alivePlayers;
+						synchronized(bb) {
+							alivePlayers =bb.getAlivePlayers();
+						}
 
 						int size = 0;
 						for(String imp : imposters)
-							if(bb.getAlivePlayers().containsKey(imp))
+							if(alivePlayers.containsKey(imp))
 								size++;
 
-						for(int i = 0; i < bb.getAlivePlayers().size() - size; i++) {
+						for(int i = 0; i < alivePlayers.size() - size; i++) {
 							ACLMessage msg2 = myAgent.receive();
 							if(msg2 != null) {
 								String rcvMsg = msg2.getContent();
@@ -618,7 +636,7 @@ public class Imposter extends Agent {
 						}	
 
 						try {
-							Thread.sleep(5000);
+							Thread.sleep(3000);
 						} catch (InterruptedException e) {
 						}
 
@@ -640,7 +658,6 @@ public class Imposter extends Agent {
 								}
 							}
 						}
-
 
 						for(String info : myInfo) {
 							split = info.split(" ");
@@ -723,7 +740,7 @@ public class Imposter extends Agent {
 						endValue = 0;
 					}
 				}
-								
+
 			} else if(states.get("playing")) {		
 				endValue = 1;
 
@@ -748,76 +765,76 @@ public class Imposter extends Agent {
 			} catch (InterruptedException e) {
 			}
 
-			if(states.get("dead")) {
-				endValue = 0;
+			if(states.get("meeting")) endValue = 2;
+			else {
+				if(bb.getEmergencyCalling()) {
 
-			} else if(bb.getEmergencyCalling()) {
+					Position myPosition = bb.getPlayerPosition(getLocalName());				
 
-				Position myPosition = bb.getPlayerPosition(getLocalName());				
+					Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
+					Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
+					Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
 
-				Map<String, Position> imposterVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getImposterVision(), bb.getAlivePlayers());
-				Map<String, Position> crewmateVision = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getCrewmateVision(), imposterVision);
-				Map<String, Position> killable = DistanceUtils.getPlayersNearImp(getLocalName(), bb.getDistanceKill(), imposterVision);
+					if(killable.size() == 1 && killCooldownCounter == 0) {
+						String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
+						Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
 
-				if(killable.size() == 1 && killCooldownCounter == 0) {
-					String name = killable.keySet().toArray(new String[killable.keySet().size()])[0];
-					Map<String, Position> crewmatesSee = DistanceUtils.getPlayersNearImp(name, bb.getCrewmateVision(), imposterVision);
+						if(crewmatesSee.isEmpty()) {
+							ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+							msg.setContent("YouAreDead");
+							msg.addReceiver(new AID(name,AID.ISLOCALNAME));
+							send(msg);
+							myPosition = killable.get(name);
+						}
 
-					if(crewmatesSee.isEmpty()) {
-						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-						msg.setContent("YouAreDead");
-						msg.addReceiver(new AID(name,AID.ISLOCALNAME));
-						send(msg);
-						myPosition = killable.get(name);
+					} else if(!imposterVision.isEmpty() && crewmateVision.isEmpty() && killCooldownCounter == 0) {
+						// could also verify every single killable
+						String name = imposterVision.keySet().toArray(new String[killable.keySet().size()])[0];					
+						myPosition = DistanceUtils.nextMove(myPosition, bb.getPlayerPosition(name));
+
 					}
 
-				} else if(!imposterVision.isEmpty() && crewmateVision.isEmpty() && killCooldownCounter == 0) {
-					// could also verify every single killable
-					String name = imposterVision.keySet().toArray(new String[killable.keySet().size()])[0];					
-					myPosition = DistanceUtils.nextMove(myPosition, bb.getPlayerPosition(name));
+					// MOVEMENT
+					else {					
+						String emergency = "";
+						String content = "";
 
-				}
+						if(states.get("reactor")) {
+							emergency = "REACTOR";
+							content = "ReactorFix";
+						} else if(states.get("oxygen")) {
+							emergency = "OXYGEN";
+							content = "OxygenFix";
+						} else {
+							emergency = "LIGHTS";
+							content = "LightsFix";
+						}
 
-				// MOVEMENT
-				else {					
-					String emergency = "";
-					String content = "";
+						if(DistanceUtils.manDistance(myPosition, bb.getEmergencyPosition(emergency)) == 0) {
+							ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+							msg.setContent(content);
+							msg.addReceiver(new AID(emergency, AID.ISLOCALNAME));
+							send(msg);
 
-					if(states.get("reactor")) {
-						emergency = "REACTOR";
-						content = "ReactorFix";
-					} else if(states.get("oxygen")) {
-						emergency = "OXYGEN";
-						content = "OxygenFix";
-					} else {
-						emergency = "LIGHTS";
-						content = "LightsFix";
+						} else {
+							endValue = 0;
+							myPosition = DistanceUtils.nextMove(myPosition, bb.getEmergencyPosition(emergency));
+						}	
 					}
 
-					if(DistanceUtils.manDistance(myPosition, bb.getEmergencyPosition(emergency)) == 0) {
-						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-						msg.setContent(content);
-						msg.addReceiver(new AID(emergency, AID.ISLOCALNAME));
-						send(msg);
+					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
 
-					} else {
-						endValue = 0;
-						myPosition = DistanceUtils.nextMove(myPosition, bb.getEmergencyPosition(emergency));
-					}	
+				}else if(states.get("playing")) {
+					endValue = 1;
+
+				}else if(states.get("over")) {
+					endValue = 3;
+
+				} else {
+					endValue = 2;
 				}
-
-				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-
-			}else if(states.get("playing")) {
-				endValue = 1;
-
-			}else if(states.get("over")) {
-				endValue = 3;
-
-			} else {
-				endValue = 2;
-			}
-		}		
+			}	
+		}
 
 		public int onEnd() {
 			return endValue;

@@ -481,7 +481,12 @@ public class Crewmate extends Agent {
 						// RECEIVE INFO
 						Map<String, String> othersInfo = new HashMap<>();
 						List<String> currentPosition = new ArrayList<String>();
-						for(int i = 0; i < bb.getAlivePlayers().size() - 1; i++) {
+						int alivePlayers;
+						synchronized(bb) {
+							alivePlayers = bb.getAlivePlayers().size();
+						}
+						
+						for(int i = 0; i < alivePlayers - 1; i++) {
 							ACLMessage msg2 = myAgent.receive();
 							if(msg2 != null) {
 								String rcvMsg = msg2.getContent();
@@ -494,7 +499,7 @@ public class Crewmate extends Agent {
 						}	
 						
 						try {
-							Thread.sleep(2000);
+							Thread.sleep(3000);
 						} catch (InterruptedException e) {
 						}
 						
@@ -622,101 +627,104 @@ public class Crewmate extends Agent {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 			}
-						
-			String dead = DistanceUtils.reportCorpse(getLocalName());
 			
-			// ghosts keep doing task during emergencies
-			if(states.get("dead")) {
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				if(!tasks.isEmpty()) {		
-					String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
-					if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
-						doingTaskCounter = 3;
-						endValue = 3;
-						states.replace("task", true);
-					}else {
-						endValue = 1;
-						myPosition = DistanceUtils.nextMove(myPosition, tasks.get(closestTask));
+			if(states.get("meeting")) endValue = 2;
+			else {
+				String dead = DistanceUtils.reportCorpse(getLocalName());
+				
+				// ghosts keep doing task during emergencies
+				if(states.get("dead")) {
+					Position myPosition = bb.getPlayerPosition(getLocalName());
+					if(!tasks.isEmpty()) {		
+						String closestTask = DistanceUtils.closestTask(myPosition, tasks);	
+						if(DistanceUtils.manDistance(myPosition, tasks.get(closestTask)) == 0) {
+							doingTaskCounter = 3;
+							endValue = 3;
+							states.replace("task", true);
+						}else {
+							endValue = 1;
+							myPosition = DistanceUtils.nextMove(myPosition, tasks.get(closestTask));
+						}
+					} else {
+						synchronized(bb){
+							myPosition = DistanceUtils.randomMove(myPosition);
+							bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+						}
 					}
-				} else {
-					synchronized(bb){
-						myPosition = DistanceUtils.randomMove(myPosition);
+					
+				// reports body
+				}else if (dead != null) {
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					String local = bb.getLocal(bb.getCorpsesPlayers().get(dead));
+					msg.setContent("Body " + dead + " " + local);
+					msg.addReceiver(new AID("Game", AID.ISLOCALNAME));
+					send(msg);
+					
+				// goes to fix emergency
+				} else if(states.get("reactor")) {
+					Position myPosition = bb.getPlayerPosition(getLocalName());
+					Position emergency = bb.getEmergencyPosition("REACTOR");
+	
+					if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("ReactorFix");
+						msg.addReceiver(new AID("REACTOR", AID.ISLOCALNAME));
+						send(msg);
+	
+					}else {
+						endValue = 0;
+						myPosition = DistanceUtils.nextMove(myPosition, emergency);
+					}
+					synchronized(bb) {
 						bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
 					}
-				}
-				
-			// reports body
-			}else if (dead != null) {
-				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-				String local = bb.getLocal(bb.getCorpsesPlayers().get(dead));
-				msg.setContent("Body " + dead + " " + local);
-				msg.addReceiver(new AID("Game", AID.ISLOCALNAME));
-				send(msg);
-				
-			// goes to fix emergency
-			} else if(states.get("reactor")) {
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("REACTOR");
-
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent("ReactorFix");
-					msg.addReceiver(new AID("REACTOR", AID.ISLOCALNAME));
-					send(msg);
-
-				}else {
 					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				synchronized(bb) {
-					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				}
-				endValue = 0;
-			} else if(states.get("lights")) {
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("LIGHTS");
-
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent("LightsFix");
-					msg.addReceiver(new AID("LIGHTS", AID.ISLOCALNAME));
-					send(msg);
-
-				}else {
+				} else if(states.get("lights")) {
+					Position myPosition = bb.getPlayerPosition(getLocalName());
+					Position emergency = bb.getEmergencyPosition("LIGHTS");
+	
+					if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("LightsFix");
+						msg.addReceiver(new AID("LIGHTS", AID.ISLOCALNAME));
+						send(msg);
+	
+					}else {
+						endValue = 0;
+						myPosition = DistanceUtils.nextMove(myPosition, emergency);
+					}
+					synchronized(bb) {
+						bb.setPlayerPosition(getLocalName(),myPosition.getX(), myPosition.getY());
+					}
 					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
-				}
-				synchronized(bb) {
-					bb.setPlayerPosition(getLocalName(),myPosition.getX(), myPosition.getY());
-				}
-				endValue = 0;
-			} else if(states.get("oxygen")){
-				Position myPosition = bb.getPlayerPosition(getLocalName());
-				Position emergency = bb.getEmergencyPosition("O2");
-
-				if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
-					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent("O2Fix");
-					msg.addReceiver(new AID("O2", AID.ISLOCALNAME));
-					send(msg);
-
+				} else if(states.get("oxygen")){
+					Position myPosition = bb.getPlayerPosition(getLocalName());
+					Position emergency = bb.getEmergencyPosition("O2");
+	
+					if(DistanceUtils.manDistance(myPosition, emergency) == 0) {
+						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+						msg.setContent("O2Fix");
+						msg.addReceiver(new AID("O2", AID.ISLOCALNAME));
+						send(msg);
+	
+					}else {
+						endValue = 0;
+						myPosition = DistanceUtils.nextMove(myPosition, emergency);
+					}
+					synchronized(bb) {
+						bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
+					}
+					endValue = 0;		
+	
+				}else if(states.get("over")) {
+					endValue = 3;
+	
+				}else if(states.get("playing")){
+					endValue = 1;
+	
 				}else {
-					endValue = 0;
-					myPosition = DistanceUtils.nextMove(myPosition, emergency);
+					endValue = 2;
 				}
-				synchronized(bb) {
-					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
-				}
-				endValue = 0;		
-
-			}else if(states.get("over")) {
-				endValue = 3;
-
-			}else if(states.get("playing")){
-				endValue = 1;
-
-			}else {
-				endValue = 2;
 			}
 		}		
 
