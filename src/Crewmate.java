@@ -40,6 +40,7 @@ public class Crewmate extends Agent {
 	private String deadPlace;
 	private Map<String, Long> info;
 	private Map<String, Integer> suspicion;
+	private Position nextPlace;
 
 	// Behaviours
 	Interaction interaction;
@@ -280,7 +281,10 @@ public class Crewmate extends Agent {
 
 				}else {
 					endValue = 0;
-					myPosition = DistanceUtils.randomMove(myPosition);
+					if(!(nextPlace != null && DistanceUtils.manDistance(myPosition, nextPlace) != 0)) {
+						nextPlace = bb.getRandomTaskPosition();
+					}
+					myPosition = DistanceUtils.nextMove(myPosition, nextPlace);
 				}
 				synchronized (bb) {
 					bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());

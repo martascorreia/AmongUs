@@ -16,12 +16,12 @@ public class Oxygen extends Agent{
 	private int timer = 40;
 	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
-	
+
 	// Behaviours
 	ThreadedBehaviourFactory tbf;
 	TickerBehaviour oxygenTime;
 	CyclicBehaviour interaction;
-	
+
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -43,27 +43,33 @@ public class Oxygen extends Agent{
 
 			@Override
 			protected void onTick() {
-				if(sabotage) {
-					timer-=1;
-					
-					if(timer == 0) {
-						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-						msg.setContent("GameOver");
-						List<String> players =  bb.getAllPlayers();
-						
-						for(String player : players) {
-							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
+
+				if(bb.isMeeting()) {
+					sabotage =false;
+				}else {
+					if(sabotage) {
+						timer--;
+
+						if(timer == 0) {
+							ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+							System.out.println("Oxygen Exploded");
+							msg.setContent("GameOver");
+							List<String> players =  bb.getAllPlayers();
+
+							for(String player : players) {
+								msg.addReceiver(new AID(player,AID.ISLOCALNAME));
+							}
+
+							msg.addReceiver(new AID("O2",AID.ISLOCALNAME));
+							msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
+
+							send(msg);
 						}
-						
-						msg.addReceiver(new AID("O2",AID.ISLOCALNAME));
-						msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
-						
-						send(msg);
 					}
 				}
 			}
 		};
-		
+
 		interaction = new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
@@ -90,7 +96,7 @@ public class Oxygen extends Agent{
 						} else {
 							sabotage = false;
 						}
-						
+
 					}else if(message.equals("OxygenFix")) {
 						System.out.println("-----------------------OXYGEN FIXED-----------------------");
 
@@ -105,20 +111,20 @@ public class Oxygen extends Agent{
 							send(msg);
 						sabotage = false;
 						bb.setEmergencyCalling(false);
-						
+
 					} else if(message.contentEquals("GameOver")) {
 						stopBehaviours();
 					}
-					
+
 				}	
 			}
 		};
-		
+
 		tbf = new ThreadedBehaviourFactory();
 		addBehaviour(tbf.wrap(oxygenTime));
 		addBehaviour(tbf.wrap(interaction));
 	}
-	
+
 	private void stopBehaviours() {
 		tbf.getThread(oxygenTime).interrupt();
 		tbf.getThread(interaction).interrupt();

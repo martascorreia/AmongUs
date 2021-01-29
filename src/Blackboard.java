@@ -3,6 +3,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class Blackboard {
 
@@ -113,7 +114,7 @@ public class Blackboard {
 		this.numOfPlayers = numOfPlayers;
 		this.numOfCrewmates = numOfPlayers - numOfImposters;
 		this.numOfImposters = numOfImposters;
-		this.NUMBER_TASK = numOfCrewmates * 3;
+		this.NUMBER_TASK = numOfCrewmates * 4;
 	}
 
 	public int getNumOfPlayers() {
@@ -278,6 +279,14 @@ public class Blackboard {
 	public boolean isMeeting() {
 		return isMeeting;
 	}
-
-
+	
+	
+	public Position getRandomTaskPosition() {
+		Random random = new Random();
+		TypeOfPosition[] typeTask = TypeOfPosition.values();
+		TypeOfPosition task = typeTask[random.nextInt(19 - 6 + 1) + 6];
+		return this.tasks.get(task.toString());
+		
+		
+	}
 }

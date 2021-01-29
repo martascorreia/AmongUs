@@ -12,19 +12,19 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
 public class Reactor extends Agent{
-	
+
 	//REACTOR
 	private static final long serialVersionUID = 1L;
-	
+
 	private int timer = 0;
 	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
-	
+
 	// Behaviours
 	ThreadedBehaviourFactory tbf;
 	TickerBehaviour reactorTime;
 	CyclicBehaviour interaction;
-	
+
 	protected void setup(){		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -40,34 +40,37 @@ public class Reactor extends Agent{
 			System.out.println("Exception while registering the service!");
 			return;
 		}
-	
+
 		reactorTime = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			protected void onTick() {
-				if(sabotage) {
+
+				if(bb.isMeeting()) {
+					sabotage= false;
+				}else if(sabotage) {
 					timer--;
 					
 					if(timer == 0) {
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 						msg.setContent("GameOver");
 						List<String> players =  bb.getAllPlayers();
-						
+
 						for(String player : players) {
 							msg.addReceiver(new AID(player,AID.ISLOCALNAME));
 						}
-						
+						System.out.println("Reactor Exploded");
 						msg.addReceiver(new AID("OXYGEN",AID.ISLOCALNAME));
 						msg.addReceiver(new AID("LIGHTS",AID.ISLOCALNAME));
 						msg.addReceiver(new AID("Game",AID.ISLOCALNAME));
-						
+
 						send(msg);
 					}
 				}
 			}
 		};
-		
+
 		interaction = new CyclicBehaviour() {
 
 			private static final long serialVersionUID = 1L;
@@ -78,7 +81,7 @@ public class Reactor extends Agent{
 				rec= receive();
 				if(rec != null){
 					String message = rec.getContent();
-					
+
 					if(message.equals("ReactorSabotage")) {
 						System.out.println("-----------------------REACTOR SABOTAGE-----------------------");
 						ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
@@ -95,7 +98,7 @@ public class Reactor extends Agent{
 						} else {
 							sabotage = false;
 						}
-									
+
 					} else if(message.equals("ReactorFix")) {
 						System.out.println("-----------------------REACTOR FIXED-----------------------");
 
@@ -117,13 +120,13 @@ public class Reactor extends Agent{
 				}	
 			}			
 		};
-		
+
 		tbf = new ThreadedBehaviourFactory();
 		addBehaviour(tbf.wrap(reactorTime));
 		addBehaviour(tbf.wrap(interaction));
-		
+
 	}
-	
+
 	private void stopBehaviours() {
 		tbf.getThread(reactorTime).interrupt();
 		tbf.getThread(interaction).interrupt();

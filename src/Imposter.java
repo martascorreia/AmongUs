@@ -38,6 +38,7 @@ public class Imposter extends Agent {
 	private int doingTaskCounter = 3;
 	private int killCooldownCounter = 15;
 	private int sabotageCooldownCounter = 15;
+	private Position nextPlace;
 
 	private String lastDead;
 	private String deadPlace;
@@ -188,6 +189,7 @@ public class Imposter extends Agent {
 					}else if(msg.equals("ReactorFixed")) {
 						states.replace("playing", true);
 						states.replace("reactor", false);
+						sabotageCooldownCounter = SABOTAGECOOLDOWN;
 
 						// LIGHTS
 					}else if(msg.equals("LightsProblem")) {
@@ -197,6 +199,7 @@ public class Imposter extends Agent {
 					}else if(msg.equals("LightsFixed")) {
 						states.replace("playing", true);
 						states.replace("lights", false);
+						sabotageCooldownCounter = SABOTAGECOOLDOWN;
 
 						// Oxygen
 					}else if(msg.equals("OxygenProblem")) {
@@ -206,6 +209,7 @@ public class Imposter extends Agent {
 					}else if(msg.equals("OxygenFixed")) {
 						states.replace("playing", true);
 						states.replace("oxygen", false);
+						sabotageCooldownCounter = SABOTAGECOOLDOWN;
 
 						// Game Over
 					}else if(msg.equals("GameOver")) {		
@@ -257,8 +261,6 @@ public class Imposter extends Agent {
 			} catch (InterruptedException e) {
 			}
 			
-			// TODO
-			callReactor();
 
 			if(states.get("playing")) {
 				Position myPosition = bb.getPlayerPosition(getLocalName());	
@@ -356,8 +358,12 @@ public class Imposter extends Agent {
 
 				}else {
 					endValue = 0;
-					myPosition = DistanceUtils.randomMove(myPosition);
+					if(!(nextPlace != null && DistanceUtils.manDistance(myPosition, nextPlace) != 0)) {
+						nextPlace = bb.getRandomTaskPosition();
+					}
+					myPosition = DistanceUtils.nextMove(myPosition, nextPlace);
 				}
+				
 
 				bb.setPlayerPosition(getLocalName(), myPosition.getX(), myPosition.getY());
 
@@ -860,7 +866,8 @@ public class Imposter extends Agent {
 		ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 		msg.setContent("ReactorSabotage");				
 		msg.addReceiver(new AID("REACTOR",AID.ISLOCALNAME));				
-		send(msg);			
+		send(msg);
+	
 		return true;
 	}
 

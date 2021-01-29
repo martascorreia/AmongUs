@@ -132,6 +132,7 @@ public class Game extends Agent {
 				synchronized(bb) {
 					alivePlayers = bb.getAlivePlayers();
 					alivePlayersS = alivePlayers.size();
+					numOfImposters = bb.getImposters().size();
 				}
 				
 				List<String> imposters = bb.getImposters();
@@ -140,7 +141,8 @@ public class Game extends Agent {
 					countains = (alivePlayers.get(imposters.get(i)) != null);
 				}
 				
-				if(bb.NUMBER_TASK == bb.getTasksDone() || alivePlayersS == numOfImposters || !countains) {
+				
+				if(bb.NUMBER_TASK == bb.getTasksDone() || alivePlayersS - numOfImposters <= numOfImposters || !countains) {
 
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.setContent("GameOver");
@@ -157,10 +159,11 @@ public class Game extends Agent {
 
 					send(msg);
 
-					if(bb.NUMBER_TASK == bb.getTasksDone())
-						System.out.println("Victory for crewmates");
-					else 
-						System.out.println("Victory for imposters");
+					if(bb.NUMBER_TASK == bb.getTasksDone() || !countains)
+						
+						System.out.println("Victory for crewmates!");
+					else
+						System.out.println("Victory for imposters!");
 				}			
 			}
 
@@ -320,20 +323,20 @@ public class Game extends Agent {
 		
 		int tasksDone = bb.getTasksDone();
 		System.out.print(" ");
-		for(int k = 0; k < numOfCrewmates * 3 ; k++) {
+		for(int k = 0; k < bb.NUMBER_TASK ; k++) {
 			System.out.print("-");
 		}
 		System.out.println();
 		System.out.print("|");
 		int l = tasksDone;
-		for(int k = 0; k < numOfCrewmates * 3; k++, l--) {
+		for(int k = 0; k <bb.NUMBER_TASK; k++, l--) {
 			if(l <= 0) System.out.print(" ");
 			else System.out.print("|");
 		}
 		System.out.println("|");
 		
 		System.out.print(" ");
-		for(int k = 0; k < numOfCrewmates * 3; k++) {
+		for(int k = 0; k < bb.NUMBER_TASK; k++) {
 			System.out.print("-");
 		}
 		
@@ -456,7 +459,7 @@ public class Game extends Agent {
 		
 		for(String imp : imposters) {
 			try {
-				Object args[] = new Object[3];
+				Object args[] = new Object[4];
 				int task1 = random.nextInt(19 - 6 + 1) + 6;
 				args[0] = tasks[task1];
 				
@@ -469,6 +472,11 @@ public class Game extends Agent {
 				while(task1 == task3 || task2 == task3) 
 					task3 = random.nextInt(19 - 6 + 1) + 6;
 				args[2] = tasks[task3];
+				
+				int task4 = random.nextInt(19 - 6 + 1) + 6;
+				while(task1 == task4 || task2 == task4 || task3 == task4) 
+					task4 = random.nextInt(19 - 6 + 1) + 6;
+				args[3] = tasks[task4];
 
 				AgentController agent = c.createNewAgent(imp, "Imposter", args);
 				agent.start();	
@@ -480,7 +488,7 @@ public class Game extends Agent {
 		
 		for(String crew : crewmates) {
 			try {
-				Object args[] = new Object[3];
+				Object args[] = new Object[4];
 				int task1 = random.nextInt(19 - 6 + 1) + 6;
 				args[0] = tasks[task1];
 				
@@ -493,6 +501,11 @@ public class Game extends Agent {
 				while(task1 == task3 || task2 == task3) 
 					task3 = random.nextInt(19 - 6 + 1) + 6;
 				args[2] = tasks[task3];
+				
+				int task4 = random.nextInt(19 - 6 + 1) + 6;
+				while(task1 == task4 || task2 == task4 || task3 == task4) 
+					task4 = random.nextInt(19 - 6 + 1) + 6;
+				args[3] = tasks[task4];
 				
 				AgentController agent = c.createNewAgent(crew, "Crewmate", args);
 				agent.start();	
@@ -612,10 +625,12 @@ public class Game extends Agent {
 			
 			for(int i = 0; i < alivePlayers.size(); i++) {
 				ACLMessage msg3 = myAgent.receive();
-				if(msg3 != null) {
+				if(msg3 != null && msg3.getContent().split(" ").length == 1 ) {
+				
+					System.out.println(msg3.getSender().getLocalName() + " voted for " + message);
 					message = msg3.getContent();
 					votes.replace(message, votes.get(message) + 1);			
-					System.out.println(msg3.getSender().getLocalName() + " voted for " + message);
+					//System.out.println(msg3.getSender().getLocalName() + " voted for " + message);
 				} else i--; 
 			}	
 			
@@ -643,7 +658,12 @@ public class Game extends Agent {
 			die.setContent("YouAreDead");
 			die.addReceiver(new AID(votedOut, AID.ISLOCALNAME));
 			send(die);		
-			
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			ACLMessage end = new ACLMessage(ACLMessage.INFORM);
 			end.setContent("EndMeeting");
 			synchronized(bb) {
