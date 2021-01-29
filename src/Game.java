@@ -461,9 +461,18 @@ public class Game extends Agent {
 		for(String imp : imposters) {
 			try {
 				Object args[] = new Object[3];
-				args[0] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[1] = tasks[random.nextInt(17 - 7 + 1) + 7];
-				args[2] = tasks[random.nextInt(17 - 7 + 1) + 7];
+				int task1 = random.nextInt(17 - 7 + 1) + 7;
+				args[0] = tasks[task1];
+				
+				int task2 = random.nextInt(17 - 7 + 1) + 7;
+				while(task1== task2) 
+					task2 = random.nextInt(17 - 7 + 1) + 7;
+				args[1] = tasks[task2].toString();
+				
+				int task3 = random.nextInt(17 - 7 + 1) + 7;
+				while(task1 == task3 || task2 == task3) 
+					task3 = random.nextInt(17 - 7 + 1) + 7;
+				args[2] = tasks[task3];
 
 				AgentController agent = c.createNewAgent(imp, "Imposter", args);
 				agent.start();	
