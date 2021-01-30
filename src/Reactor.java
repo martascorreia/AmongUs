@@ -11,16 +11,21 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
+/**
+ * Reactor class
+ * Represents the reactor sabotage in the Among Us game, making the crewmates go fix it
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Reactor extends Agent{
 
-	//REACTOR
 	private static final long serialVersionUID = 1L;
 
 	private int timer = 0;
 	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
 
-	// Behaviours
+	// Behaviors
 	ThreadedBehaviourFactory tbf;
 	TickerBehaviour reactorTime;
 	CyclicBehaviour interaction;
@@ -41,6 +46,7 @@ public class Reactor extends Agent{
 			return;
 		}
 
+		// behavior for the timer before it explodes
 		reactorTime = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
@@ -71,8 +77,8 @@ public class Reactor extends Agent{
 			}
 		};
 
+		// behavior for the interaction between oxygen and the players
 		interaction = new CyclicBehaviour() {
-
 			private static final long serialVersionUID = 1L;
 
 			@Override

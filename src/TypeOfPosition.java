@@ -1,4 +1,9 @@
-
+/**
+ * TypeOfPosition enum 
+ * This enum represents the different positions in the map
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public enum TypeOfPosition {
 	NORMAL,
 	WALL, 

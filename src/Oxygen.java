@@ -11,13 +11,19 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
+/**
+ * Oxygen class
+ * Represents the oxygen sabotage in the Among Us game, making the crewmates go fix it
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Oxygen extends Agent{
 	private static final long serialVersionUID = 1L;
 	private int timer = 40;
 	private boolean sabotage = false;
 	private Blackboard bb = Blackboard.getInstance();
 
-	// Behaviours
+	// Behaviors
 	ThreadedBehaviourFactory tbf;
 	TickerBehaviour oxygenTime;
 	CyclicBehaviour interaction;
@@ -38,6 +44,7 @@ public class Oxygen extends Agent{
 			return;
 		}
 
+		// behavior for the timer before it explodes
 		oxygenTime = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
@@ -70,6 +77,7 @@ public class Oxygen extends Agent{
 			}
 		};
 
+		// behavior for the interaction between oxygen and the players
 		interaction = new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 

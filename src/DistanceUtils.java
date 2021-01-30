@@ -2,6 +2,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+/**
+ * DistanceUtils class
+ * Auxiliary class that gives information on distances
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class DistanceUtils {
 
 	private final static Blackboard bb = Blackboard.getInstance();

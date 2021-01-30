@@ -9,11 +9,17 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
+/**
+ * Lights class
+ * Represents the lights sabotage in the Among Us game, making the crewmates lose vision distance
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Lights extends Agent {
 	private static final long serialVersionUID = 1L;
 	private Blackboard bb = Blackboard.getInstance();
 	
-	// Behaviours
+	// Behaviors
 	CyclicBehaviour interaction;	
 	
 	protected void setup(){		
@@ -32,6 +38,7 @@ public class Lights extends Agent {
 			return;
 		}
 				
+		// behavior for the interaction between lights and the players
 		interaction = new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 

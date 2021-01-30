@@ -1,5 +1,9 @@
-import java.util.List;
-
+/**
+ * Position class 
+ * This class represents a position in the map
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Position {
 
 	private int x,y;

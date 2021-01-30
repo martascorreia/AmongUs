@@ -5,6 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+/**
+ * Blackboard class 
+ * This class is a Singleton that is meant to serve as a common storage of data for all the agents
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Blackboard {
 
 	private Map<String, Position> alivePlayers;
@@ -81,6 +87,19 @@ public class Blackboard {
 
 		return result;
 	}
+	
+	public List<String> getAllPlayers(){
+		List<String> allPlayers = new ArrayList<>();
+
+		for(String name : this.alivePlayers.keySet()) {
+			allPlayers.add(name);
+		}
+		for(String name : this.deadPlayers.keySet()) {
+			allPlayers.add(name);
+		}
+
+		return allPlayers;
+	}
 
 	// MAP	
 	public TypeOfPosition[] getMap() {
@@ -98,6 +117,25 @@ public class Blackboard {
 
 	public void setTaskPosition(String key, Position value) {
 		tasks.put(key, value);
+	}
+	
+	public void incrementTaskDone() {
+		this.tasksDone++;
+	}
+
+	public int getTasksDone() {
+		return tasksDone;
+	}
+	
+	public boolean isTask(Position p) {
+		Iterator<String> iter = tasks.keySet().iterator();
+		while(iter.hasNext()) {
+			String key = iter.next();
+			Position value = tasks.get(key);
+			if(value.getX() == p.getX() && value.getY() == p.getY())
+				return true;
+		}
+		return false;
 	}
 
 	// EMERGENCIES
@@ -202,27 +240,8 @@ public class Blackboard {
 		corpses.clear();
 	}
 
-	public void incrementTaskDone() {
-		this.tasksDone++;
-	}
-
-	public int getTasksDone() {
-		return tasksDone;
-	}
-
-	public List<String> getAllPlayers(){
-		List<String> allPlayers = new ArrayList<>();
-
-		for(String name : this.alivePlayers.keySet()) {
-			allPlayers.add(name);
-		}
-		for(String name : this.deadPlayers.keySet()) {
-			allPlayers.add(name);
-		}
-
-		return allPlayers;
-	}
-
+	
+	// POSITIONS
 	public String getLocal(Position p) {
 		TypeOfPosition closest = TypeOfPosition.MEETING;
 		Position closestP = new Position(10,4);
@@ -258,19 +277,15 @@ public class Blackboard {
 		}
 		return null;
 	}
-
-
-	public boolean isTask(Position p) {
-		Iterator<String> iter = tasks.keySet().iterator();
-		while(iter.hasNext()) {
-			String key = iter.next();
-			Position value = tasks.get(key);
-			if(value.getX() == p.getX() && value.getY() == p.getY())
-				return true;
-		}
-		return false;
+	
+	public Position getRandomTaskPosition() {
+		Random random = new Random();
+		TypeOfPosition[] typeTask = TypeOfPosition.values();
+		TypeOfPosition task = typeTask[random.nextInt(19 - 6 + 1) + 6];
+		return this.tasks.get(task.toString());
 	}
 
+	// MEETING
 	public void setMeeting() {
 		if(isMeeting) isMeeting = false;
 		else isMeeting = true;
@@ -281,12 +296,5 @@ public class Blackboard {
 	}
 	
 	
-	public Position getRandomTaskPosition() {
-		Random random = new Random();
-		TypeOfPosition[] typeTask = TypeOfPosition.values();
-		TypeOfPosition task = typeTask[random.nextInt(19 - 6 + 1) + 6];
-		return this.tasks.get(task.toString());
-		
-		
-	}
+	
 }

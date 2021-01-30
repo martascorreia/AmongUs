@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -22,6 +21,13 @@ import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
 import jade.wrapper.StaleProxyException;
 
+/**
+ * Game class
+ * This class is the manager of the game, being responsible for printing the map and task bar, 
+ * as well as the messages during the meetings, and ending the game (except when an emergency terminates it)
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Game extends Agent {
 
 	private static final long serialVersionUID = 1L;
@@ -45,13 +51,12 @@ public class Game extends Agent {
 	private boolean onMeeting;
 
 	// Behaviours
-	CyclicBehaviour tasks;
+	CyclicBehaviour endGame;
 	TickerBehaviour prints;
 	FSMBehaviour game;
 	ThreadedBehaviourFactory tbf;
 
 	protected void setup(){
-
 		colors = new HashMap<>();
 		colors.put("RED", "\033[0;91m");
 		colors.put("BLACK", "\033[0;30m");
@@ -64,6 +69,7 @@ public class Game extends Agent {
 		colors.put("WHITE", "\033[0;97m");
 		colors.put("PURPLE", "\033[0;35m");
 		onMeeting = false;
+		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -122,7 +128,8 @@ public class Game extends Agent {
 	}	
 
 	private void behaviours() {
-		tasks = new CyclicBehaviour() {
+		// behavior verifies the end of the game
+		endGame = new CyclicBehaviour() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -169,6 +176,7 @@ public class Game extends Agent {
 
 		};
 
+		// behavior prints the map every second
 		prints = new TickerBehaviour(this,1000) {
 			private static final long serialVersionUID = 1L;
 
@@ -179,7 +187,7 @@ public class Game extends Agent {
 			}
 		};
 
-		// FSM BEHAVIOUR
+		// behavior of the different states of the game
 		game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
 
@@ -215,7 +223,7 @@ public class Game extends Agent {
 		tbf = new ThreadedBehaviourFactory();
 		addBehaviour(tbf.wrap(game));
 		addBehaviour(tbf.wrap(prints));	
-		addBehaviour(tbf.wrap(tasks));	
+		addBehaviour(tbf.wrap(endGame));	
 
 	}
 
@@ -531,6 +539,10 @@ public class Game extends Agent {
 
 	}
 
+	/**
+	 * Represents the game when crewmates and imposters are playing. 
+	 * It waits for a body report or an emergency to be set off to change states.
+	 */
 	public class Playing extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
@@ -583,6 +595,12 @@ public class Game extends Agent {
 		}
 	}
 	
+	/**
+	 * Represents the game when crewmates and imposters are having a meeting. 
+	 * It first prints where the body was found and by whom, then prints the messages
+	 * with information from each player and the votes, and for last ejects the player 
+	 * with the most votes
+	 */
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
@@ -686,6 +704,11 @@ public class Game extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the game when there's an emergency going off. It waits for a body to be
+	 * reported or the emergency getting fixed or the game ending.
+	 *
+	 */
 	public class Emergency extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
@@ -726,12 +749,17 @@ public class Game extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the end of the game and ends each behaviour.
+	 * @author Marta Correia
+	 *
+	 */
 	public class Over extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 
 		@Override
 		public void action() {
-			tbf.getThread(tasks).interrupt();
+			tbf.getThread(endGame).interrupt();
 			tbf.getThread(prints).interrupt();
 			tbf.interrupt();
 			myAgent.doDelete();

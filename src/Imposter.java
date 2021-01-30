@@ -17,6 +17,12 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
+/**
+ * Imposter class
+ * This class represents an imposter in the Among Us game
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Imposter extends Agent {
 
 	private static final long serialVersionUID = 1L;
@@ -29,7 +35,6 @@ public class Imposter extends Agent {
 	private final String DOINGTASK = "DoingTask";
 	private static final String OVER = "Over"; 
 
-
 	private final int KILLCOOLDOWN = 15;
 	private final int SABOTAGECOOLDOWN = 15;
 
@@ -39,9 +44,6 @@ public class Imposter extends Agent {
 	private int killCooldownCounter = 15;
 	private int sabotageCooldownCounter = 15;
 	private Position nextPlace;
-
-	private String lastDead;
-	private String deadPlace;
 	private Map<String, Long> info;
 	private Map<String, Integer> suspicion;
 
@@ -97,6 +99,7 @@ public class Imposter extends Agent {
 			tasks.put(p.toString(), bb.getTaskPosition(p.toString()));
 		}
 
+		// behavior that decreases the kill cooldown
 		killCooldown = new TickerBehaviour(this, 1000) {
 			private static final long serialVersionUID = 1L;
 
@@ -108,6 +111,7 @@ public class Imposter extends Agent {
 
 		};
 
+		// behavior that decreases the sabotage cooldown
 		sabotageCooldown = new TickerBehaviour(this, 1000) {
 			private static final long serialVersionUID = 1L;
 
@@ -119,7 +123,7 @@ public class Imposter extends Agent {
 
 		};
 
-		// FSM
+		// behavior that represents the various states of this agent through the game
 		game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
 
@@ -170,6 +174,10 @@ public class Imposter extends Agent {
 		addBehaviour(tbf.wrap(new Interaction()));
 	}
 
+	/**
+	 * Receives messages and changes the variable states so the agent knows 
+	 * when to switch states in the FSM Behavior
+	 */
 	public class Interaction extends CyclicBehaviour{
 
 		private static final long serialVersionUID = 1L;
@@ -249,6 +257,10 @@ public class Imposter extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the imposter state while playing, meaning it searches for crewmates to kill, 
+	 * sets of emergencies or fakes tasks, while keeping information about its surroundings
+	 */
 	public class Playing extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
@@ -385,6 +397,9 @@ public class Imposter extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the imposter state while faking a task
+	 */
 	public class DoingTask extends OneShotBehaviour{
 
 		private static final long serialVersionUID = 1L;
@@ -481,6 +496,11 @@ public class Imposter extends Agent {
 		}		
 	}
 
+	/**
+	 * Represents the imposter state while a meeting is occurring. It takes the information
+	 * its been collecting, filters it, sends it to the other agents, receives information 
+	 * from the other agents and then decides on a suspect to vote off
+	 */
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
@@ -759,6 +779,10 @@ public class Imposter extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the imposter state while a emergency is going off, meaning it goes to fix it
+	 * but its still looking for crewmates to kill
+	 */
 	public class Emergency extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
@@ -846,6 +870,9 @@ public class Imposter extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the imposter when the game ends. Ends each behavior.
+	 */
 	public class Over extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 
@@ -858,6 +885,9 @@ public class Imposter extends Agent {
 		}	 
 	}	
 
+	/**
+	 * Starts reactor sabotage, if possible
+	 */
 	private boolean callReactor() {
 		if(bb.getEmergencyCalling() || sabotageCooldownCounter > 0) return false;
 		sabotageCooldownCounter = 20;
@@ -870,6 +900,9 @@ public class Imposter extends Agent {
 		return true;
 	}
 
+	/**
+	 * Stater lights sabotage, if possible 
+	 */
 	private boolean callLigths() {
 		if(bb.getEmergencyCalling() || sabotageCooldownCounter > 0) return false;
 		sabotageCooldownCounter = 20;
@@ -881,6 +914,9 @@ public class Imposter extends Agent {
 		return true;
 	}
 
+	/**
+	 * Stater oxygen sabotage, if possible 
+	 */
 	private boolean callOxygen() {		
 		if(bb.getEmergencyCalling() || sabotageCooldownCounter > 0) return false;
 		sabotageCooldownCounter = 20;

@@ -1,12 +1,8 @@
-import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -20,6 +16,13 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
+/**
+ * Crewmate class
+ * This class represents a crewmate in the Among Us game. It differs from the OtherCrewmate by,
+ * when left with no tasks to do, going through the tasks looking for bodies to report
+ * @author Francisco Cavaco (51105), Marta Correia (51022) and Miguel Tavares (51966)
+ *
+ */
 public class Crewmate extends Agent {
 
 	private static final long serialVersionUID = 1L;
@@ -35,9 +38,6 @@ public class Crewmate extends Agent {
 	private Map<String, Position> tasks;
 	private Map<String, Boolean> states; 
 	private int doingTaskCounter = 3;
-
-	private String lastDead;
-	private String deadPlace;
 	private Map<String, Long> info;
 	private Map<String, Integer> suspicion;
 	private Position nextPlace;
@@ -93,7 +93,7 @@ public class Crewmate extends Agent {
 			tasks.put(p.toString(), bb.getTaskPosition(p.toString()));
 		}
 
-		// FSM
+		// behavior that represents the various states of this agent through the game
 		game = new FSMBehaviour(this) {
 			private static final long serialVersionUID = 1L;
 
@@ -144,6 +144,10 @@ public class Crewmate extends Agent {
 	}
 
 
+	/**
+	 * Receives messages and changes the variable states so the agent knows 
+	 * when to switch states in the FSM Behavior
+	 */
 	public class Interaction extends CyclicBehaviour{
 
 		private static final long serialVersionUID = 1L;
@@ -220,6 +224,10 @@ public class Crewmate extends Agent {
 
 	}
 
+	/**
+	 * Represents the crewmate state while playing, meaning it makes the agent 
+	 * do tasks and report bodies (if not dead), while keeping information about its surroundings
+	 */
 	public class Playing extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
@@ -309,6 +317,9 @@ public class Crewmate extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the crewmate state while doing a task
+	 */
 	public class DoingTask extends OneShotBehaviour{
 
 		private static final long serialVersionUID = 1L;
@@ -354,6 +365,11 @@ public class Crewmate extends Agent {
 		}		
 	}
 
+	/**
+	 * Represents the crewmate state while a meeting is occurring. It takes the information
+	 * its been collecting, filters it, sends it to the other agents, receives information 
+	 * from the other agents and then decides on a suspect to vote off
+	 */
 	public class Meeting extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
@@ -622,6 +638,10 @@ public class Crewmate extends Agent {
 		}
 	}
 
+	/**
+	 * Represents the crewmate state while a emergency is going off, meaning it goes to fix it
+	 * but its still looking for bodies. If crewmate is a ghost, it can keep doing tasks
+	 */
 	public class Emergency extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 		private int endValue;
@@ -738,6 +758,9 @@ public class Crewmate extends Agent {
 	}
 
 
+	/**
+	 * Represents the crewmate when the game ends. Ends each behavior.
+	 */
 	public class Over extends OneShotBehaviour {
 		private static final long serialVersionUID = 1L;
 
