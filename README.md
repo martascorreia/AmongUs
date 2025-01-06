@@ -10,4 +10,4 @@ How to run the project on Eclipse:
 2.  Add jade.jar as a library and the run configurations;
 3.  Add jade.Boot as the main class;
 4.  Add _-port <port> game:Game(<numOfPlayers>,<numOfImposters>)_ as the running argument, where
-   <port> is the desired local port, <numOfPlayers> is the number of crewmated (between 4 and 10, advised 10), and <numOfImposters> is the number of imposters (between 1 and 3, advised 2).
+   port is the desired local port, numOfPlayers is the number of crewmates (between 4 and 10, advised 10), and numOfImposters is the number of imposters (between 1 and 3, advised 2).
